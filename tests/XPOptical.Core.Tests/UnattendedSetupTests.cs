@@ -49,6 +49,8 @@ public class UnattendedSetupTests
     [InlineData("bcdfg-hjkmp-qrtvw-xy234-6789b", TestKey)]
     [InlineData("BCDFGHJKMPQRTVWXY2346789B", TestKey)]
     [InlineData(" BCDFG HJKMP QRTVW XY234 6789B ", TestKey)]
+    [InlineData("ＢＣＤＦＧ－ＨＪＫＭＰ－ＱＲＴＶＷ－ＸＹ２３４－６７８９Ｂ", TestKey)]  // 全形
+    [InlineData("BCDFG  -  HJKMP-QRTVW-XY234-6789B\t", TestKey)]  // 貼上時夾帶的空白
     [InlineData("BCDFG-HJKMP-QRTVW-XY234-6789", null)]   // 少一碼
     [InlineData("ABCDE-HJKMP-QRTVW-XY234-6789B", null)]  // A、E 不會出現在 XP 序號
     [InlineData("", null)]

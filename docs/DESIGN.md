@@ -1,4 +1,4 @@
-# WinXP Optical System — 系統設計（v0.3，對應程式 v0.1.0）
+# WinXP Optical System — 系統設計（v0.3，對應程式 v0.2.1）
 
 > 目標：一個在 Windows 10/11 上雙擊即可使用的程式，讓只能在 Windows XP 上操作的光學軟體與 **HORIBA iHR320 分光儀**繼續運作。
 > 重點強化 **USB 連接**，關閉後像關機一樣保存狀態，但不帶傳統虛擬機的笨重。
@@ -293,10 +293,11 @@ XPOptical\
 | 隨附的 Windows 引擎 DLL 完整 | 通過 | 建置時解析所有 PE 匯入；Wine 實際啟動 qemu-system-x86_64、qemu-img、usbredirect |
 | 繁中主程式畫面 | 首次使用畫面、XP 畫面內嵌、狀態列、設定視窗顯示正常；關閉自動休眠、再開恢復成功 | 在 Wine + 虛擬螢幕上執行 XPOptical.exe 並截圖 |
 | 從 Linux 編譯 XP 可執行檔（代理程式） | 可行：PE 版本 5.1，只匯入 XP 內建 DLL | 雲端 MinGW 實測 |
-
 | Win11 實機（本機測試端，i5-8400、Win11 Pro 26200） | `dotnet test` 48/48；主程式安裝模式、安裝完成、開啟、關閉休眠（0.6 秒）、再開恢復（0.2 秒）、問題回報按鈕皆正常（以 Alpine ISO 代替 XP 光碟） | 本機測試端回報 #1 |
 | WHPX 能否休眠 | 不能：QEMU 在 WHPX 下登錄遷移阻擋（`target/i386/whpx/whpx-all.c`：缺少 dirty memory tracking），所以 Windows 上一律使用 TCG | 本機實測 + 原始碼確認；MSYS2 的 i386 版甚至未編入 WHPX |
 | TCG 效能：x86_64 版 vs i386 版 | x86_64 版快約 30%（Alpine 開機 27.0 秒 vs 38.6 秒），改用 x86_64 版 | 本機實測 |
+| 單一安裝檔（v0.2.0） | Windows 上以 `package.ps1` 打包成功；實機安裝 61 秒、檔案與 Users 寫入權限、登錄、捷徑正確；UsbDk 自動安裝後服務執行中；覆蓋安裝正常 | 本機測試端回報 #3 |
+| 全自動安裝 XP 的流程 | 偵測 ISO 版本、序號檢查、以磁碟片開機、完成標記 → 刪除磁碟片 → 從硬碟開機皆正常（以假 ISO 模擬）；DiscUtils 產生的 FAT12 磁碟片在真實虛擬機中可讀寫，虛擬機關機後引擎結束 | 本機測試端回報 #3（以 Alpine 讀寫磁碟片） |
 
 尚未驗證（需要使用者本人在 Win11 實機上）：XP SP3 安裝、UsbDk 安裝與 iHR320 經 usbredir 的實際運作與速度、真正 XP 的休眠檔大小與存檔時間。
 
@@ -308,6 +309,9 @@ XPOptical\
 | 休眠存檔失敗 | Windows 版 QEMU 的檔案通道未實作非阻塞模式 | 改經本機 TCP 傳送（見 6.2） |
 | 休眠存檔卡住 | Windows 版 QEMU 傳完不關閉連線 | 以資料停止流入判斷結束，再結束引擎並驗證檔案 |
 | 光碟可能被放進軟碟機 | 機器同時有可移除的軟碟機 | 光碟機固定命名為 `cd0` |
+| Windows 上打包安裝檔失敗（no files found） | Windows 版 makensis 的 `File` 不接受「/」路徑 | 安裝檔腳本一律用「\」，Linux 版 makensis 會自動轉換（CI 確認） |
+| 安裝完成頁開啟的主程式無法拖放檔案 | 安裝檔以系統管理員執行，直接開啟的主程式也是系統管理員權限，UIPI 不允許從檔案總管拖放 | 改經 `explorer.exe` 以目前使用者身分開啟 |
+| 新電腦上安裝檔被直接擋下 | Win11「智慧型應用程式控制」擋下沒有簽章的程式 | 使用說明加上關閉方式；長期以程式碼簽章解決 |
 
 ---
 

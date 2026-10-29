@@ -24,10 +24,10 @@ public static partial class UnattendedSetup
     [GeneratedRegex("^[BCDFGHJKMPQRTVWXY2346789]{5}(-[BCDFGHJKMPQRTVWXY2346789]{5}){4}$")]
     private static partial Regex KeyPattern();
 
-    /// <summary>整理使用者輸入的序號（去空白、轉大寫、補上連字號）；格式不對時回傳 null。</summary>
+    /// <summary>整理使用者輸入的序號（全形轉半形、去空白、轉大寫、補上連字號）；格式不對時回傳 null。</summary>
     public static string? NormalizeProductKey(string input)
     {
-        var chars = new string(input.ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        var chars = new string(input.Normalize(NormalizationForm.FormKC).ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
         if (chars.Length != 25) return null;
         var key = string.Join("-", Enumerable.Range(0, 5).Select(i => chars.Substring(i * 5, 5)));
         return KeyPattern().IsMatch(key) ? key : null;

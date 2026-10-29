@@ -254,7 +254,11 @@ public partial class MainWindow : Window
         await Display.DisconnectAsync();
         if (_app.TryCompleteUnattendedInstall())
         {
-            Info("XP 安裝完成！\n\n接下來會開啟 XP。請把光學軟體與 iHR320 驅動的安裝檔資料夾拖進視窗，在 XP 裡安裝。");
+            var iso = new FileInfo(_app.BundledXpIso);
+            var isoNote = iso.Exists
+                ? $"\n\n程式資料夾裡的 xp.iso（{iso.Length / (1024 * 1024)} MB）只有重新安裝 XP 時才會用到，要節省空間可以刪除。"
+                : "";
+            Info("XP 安裝完成！\n\n接下來會開啟 XP。請把光學軟體與 iHR320 驅動的安裝檔資料夾拖進視窗，在 XP 裡安裝。" + isoNote);
             await StartVmAsync();
             return;
         }

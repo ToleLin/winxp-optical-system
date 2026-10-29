@@ -16,7 +16,7 @@
 
         <TextBlock Text="產品序號" FontWeight="SemiBold" />
         <TextBox x:Name="KeyBox" Margin="0,6,0,4" Padding="4" FontFamily="Consolas, Microsoft JhengHei UI, Noto Sans CJK TC"
-                 FontSize="16" CharacterCasing="Upper" MaxLength="29" TextChanged="OnKeyChanged" />
+                 FontSize="16" CharacterCasing="Upper" MaxLength="40" TextChanged="OnKeyChanged" />
         <TextBlock x:Name="KeyInfo" Foreground="#555" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap"
                    Text="25 碼，印在光碟包裝或電腦上的 COA 貼紙，例如 XXXXX-XXXXX-XXXXX-XXXXX-XXXXX。" />
 

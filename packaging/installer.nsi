@@ -1,6 +1,6 @@
 ; XP 光學系統 安裝檔（NSIS 3，Unicode）
 ; 由 tools/package.sh 或 tools/package.ps1 呼叫：
-;   makensis -INPUTCHARSET UTF8 -DVERSION=0.2.0 -DSRC=<免安裝版資料夾> -DICON=<app.ico>
+;   makensis -INPUTCHARSET UTF8 -DVERSION=0.2.1 -DSRC=<免安裝版資料夾> -DICON=<app.ico>
 ;            -DUSBDK_MSI=<檔名> -DOUTFILE=<輸出檔> packaging/installer.nsi
 ;
 ; 安裝內容：程式、執行引擎、USB 驅動（UsbDk，自動安裝）、捷徑、解除安裝。
