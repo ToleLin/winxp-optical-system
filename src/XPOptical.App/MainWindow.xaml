@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:XPOptical.App"
         Title="XP 光學系統"
+        FontFamily="{StaticResource UiFont}" FontSize="14"
         Icon="app.ico"
         Width="1120" Height="880" MinWidth="820" MinHeight="620"
         WindowStartupLocation="CenterScreen"
@@ -37,7 +38,7 @@
                             ToolTip="XP 安裝完成、已看到 XP 桌面後按這裡" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <Button x:Name="SettingsButton" Style="{StaticResource ToolButton}" Content="⚙ 設定"
+                    <Button x:Name="SettingsButton" Style="{StaticResource ToolButton}" Content="設定"
                             Click="OnSettingsClick" />
                 </StackPanel>
             </DockPanel>
@@ -52,7 +53,7 @@
                     <Rectangle Width="1" Height="16" Fill="#C5CBD3" Margin="12,0" />
                     <Ellipse x:Name="UsbDot" Width="10" Height="10" Fill="Gray" VerticalAlignment="Center" />
                     <TextBlock x:Name="UsbStatusText" Margin="6,0,0,0" VerticalAlignment="Center" />
-                    <Rectangle Width="1" Height="16" Fill="#C5CBD3" Margin="12,0" />
+                    <Rectangle x:Name="AccelSeparator" Width="1" Height="16" Fill="#C5CBD3" Margin="12,0" />
                     <TextBlock x:Name="AccelText" VerticalAlignment="Center" />
                 </StackPanel>
                 <Button x:Name="FixButton" DockPanel.Dock="Right" Padding="10,2" Visibility="Collapsed"

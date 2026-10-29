@@ -28,7 +28,7 @@ public partial class SettingsWindow : Window
         // 變更記憶體會讓休眠中的畫面無法恢復，所以只允許在 XP 完全關機時變更
         var canChangeRam = app.VmState == VmState.Stopped && !app.CanResume;
         RamCombo.IsEnabled = canChangeRam;
-        RamHint.Text = canChangeRam ? "" : "要變更記憶體，請先讓 XP「正常關機」（工具列的 ⏻ 關機）。";
+        RamHint.Text = canChangeRam ? "" : "要變更記憶體，請先讓 XP 正常關機（工具列的「■ 關機」）。";
 
         LoadDevices();
     }

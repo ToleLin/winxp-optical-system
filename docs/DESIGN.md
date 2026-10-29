@@ -1,4 +1,4 @@
-# WinXP Optical System — 系統設計（v0.2）
+# WinXP Optical System — 系統設計（v0.3，對應程式 v0.1.0）
 
 > 目標：一個在 Windows 10/11 上雙擊即可使用的程式，讓只能在 Windows XP 上操作的光學軟體與 **HORIBA iHR320 分光儀**繼續運作。
 > 重點強化 **USB 連接**，關閉後像關機一樣保存狀態，但不帶傳統虛擬機的笨重。
@@ -191,7 +191,9 @@ XPOptical\
 
 > 若 iHR320 在休眠期間被關過電源，光學軟體記錄的儀器狀態可能與實際不符。Phase 0 會測試恢復後軟體能否自行重新連線；若不能，iHR320 設定檔預設改用「正常關機」。
 
-實作（已在雲端以 QEMU 8.2 驗證流程可行）：QMP `stop` → `migrate` 到 `file:` → `quit`；恢復時以 `-incoming defer` 啟動 → `migrate-incoming` → `cont` → 重新熱插入 USB。
+實作：QMP `stop` → `migrate` 經**本機 TCP** 送到主程式、由主程式寫入 `state.bin.tmp` → 資料停止流入後 `quit` → 確認檔案完整才轉正；恢復時以 `-incoming defer` 啟動 → `migrate-incoming` 監聽本機埠 → 主程式送回檔案 → 狀態變為 paused → 作廢休眠檔 → `cont` → 重新熱插入 USB。
+
+> 為什麼不直接「遷移到檔案」？Windows 版 QEMU 的檔案通道沒有實作非阻塞模式（`io/channel-file.c` 在 WIN32 下標註 not implemented），`file:` 遷移在 Windows 上會失敗；而且 Windows 版 QEMU 傳完後不會主動關閉連線，所以改以「資料停止流入」判斷結束。這兩點都是用 Wine 執行實際隨附的 Windows 版引擎時發現的。
 
 ### 6.3 一致性規則
 
@@ -215,6 +217,8 @@ XPOptical\
 ---
 
 ## 7. XP 環境建立精靈（取代舊電腦轉換）
+
+> v0.1.0：選擇 ISO 後由 XP 原本的安裝畫面引導安裝（畫面在主視窗中），完成後按「XP 安裝完成」；安裝檔以「放入檔案」做成光碟放進 XP；量測資料以隨身碟轉送拿出。下表的無人值守安裝與代理程式屬於 Phase 2。
 
 因為舊電腦無法開機，程式需要能從零建立 XP：
 
@@ -248,8 +252,9 @@ XPOptical\
 | `vm.ramMB` / `vm.closeAction` | 記憶體大小；關閉行為 `hibernate` / `shutdown` |
 | `usb[].match` | 以 VID:PID（及序號）比對；iHR320 的實際 ID 於 Phase 0 從 Win11 裝置管理員讀取後填入 |
 | `usb[].followReenumeration` | 韌體下載後的新 VID:PID（若有） |
-| `usb[].onResume` | `replug`（預設）或 `keep` |
-| `dataSync` | 資料同步路徑與方向 |
+| `usb[].autoAttach` | 是否自動接入 |
+
+使用者在「設定」中選擇的 iHR320 與其他 USB 裝置存在 `settings.json`，與設定檔的規則合併使用。（USB 一律在休眠前移除、恢復後重新接入，因為存檔時的裝置組成必須和恢復時的啟動參數一致；資料同步等欄位在代理程式完成後加入。）
 
 ---
 
@@ -265,9 +270,9 @@ XPOptical\
 
 | 階段 | 內容 | 完成標準 |
 |---|---|---|
-| **Phase 0：可行性驗證** | 在 Win11 + iHR320 上以現成工具手動跑一次（[`PHASE0-POC.md`](PHASE0-POC.md)） | 光學軟體能在 XP 中控制 iHR320；量到掃描速度、休眠/恢復時間 |
-| Phase 1：可用版 | 主程式（繁中）+ 內嵌 XP 畫面 + QMP 控制 + 快速休眠 + iHR320 自動接入（含熱插拔） | 每天開關都正常，不需手動操作 USB |
-| Phase 2：精靈與還原 | XP 環境建立精靈、匯入檔案、出廠狀態/還原點、XP 代理程式（資料同步、時間校正） | 新電腦從零到可用全部透過精靈完成 |
+| **Phase 0：實機驗證** | 用 v0.1.0 在 Win11 + iHR320 上實際操作（[`PHASE0-POC.md`](PHASE0-POC.md)） | 光學軟體能在 XP 中控制 iHR320；量到掃描速度、休眠/恢復時間 |
+| Phase 1：可用版 ✅ v0.1.0 | 主程式（繁中）+ 內嵌 XP 畫面 + QMP 控制 + 快速休眠 + iHR320 自動接入（含熱插拔）+ 從 ISO 安裝 XP + 放入檔案（光碟）+ 隨身碟轉送 | 雲端自動化測試通過；待 Phase 0 實機確認 |
+| Phase 2：精靈與還原 | XP 無人值守安裝（WINNT.SIF）、出廠狀態/還原點、XP 代理程式（資料自動同步、恢復後校正時間） | 新電腦從零到可用全部透過精靈完成 |
 | Phase 3：產品化 | 錯誤訊息與診斷、USB 封包記錄、隨附授權文件、程式碼簽章 | 可交給非技術使用者 |
 | 未來擴充 | COM 埠對應（含 Windows 序列埠參數同步修補）、其他儀器設定檔 | 依需求 |
 
@@ -281,12 +286,22 @@ XPOptical\
 | `usbredirect` 在 Windows 使用 UsbDk + 事件執行緒 | 確認 | 閱讀 usbredir 原始碼 |
 | Windows 版 QEMU 含 usb-redir / libusb | 確認 | MSYS2 `mingw-w64-ucrt-x86_64-qemu`（11.1.2）相依 usbredir、libusb |
 | Windows 版 `usbredirect.exe` 可取得 | 確認 | MSYS2 `mingw-w64-ucrt-x86_64-usbredir`（0.15.0） |
-| QMP 熱插拔 `usb-redir`、休眠存檔/恢復、恢復後重新接入 | 流程可行 | 雲端以 QEMU 8.2 實測（未裝 XP，僅驗證機制） |
-| EHCI + UHCI 伴隨控制器拓撲 | QEMU 接受 | 同上 |
+| 完整流程：冷開機、VNC 畫面、USB 接入/拔除/重新接入/取消勾選歸還、休眠、恢復、關機逾時、強制關閉、從 ISO 安裝、匯入映像、放入光碟 | 通過 | 自動化整合測試，分別以 Linux 版 QEMU 8.2 與**實際隨附的 Windows 版 QEMU 11.1.2（透過 Wine）**執行；USB 以假的 usbredirect 代替 |
+| 資料夾路徑含中文與空白 | 通過 | 整合測試的工作資料夾刻意含中文與空白 |
+| 隨附的 Windows 引擎 DLL 完整 | 通過 | 建置時解析所有 PE 匯入；Wine 實際啟動 qemu-system-i386、qemu-img、usbredirect |
+| 繁中主程式畫面 | 首次使用畫面、XP 畫面內嵌、狀態列、設定視窗顯示正常；關閉自動休眠、再開恢復成功 | 在 Wine + 虛擬螢幕上執行 XPOptical.exe 並截圖 |
 | 從 Linux 編譯 XP 可執行檔（代理程式） | 可行：PE 版本 5.1，只匯入 XP 內建 DLL | 雲端 MinGW 實測 |
-| 從 Linux 編譯自帶執行環境的單一檔案 WPF exe | 可行（約 72 MB） | 雲端以 Microsoft 官方 .NET 8 SDK 實測；尚未在 Windows 上執行 |
 
-尚未驗證（需要 Win11 實機 + iHR320，即 Phase 0）：WHPX 跑 XP 的相容性、UsbDk 在 Win11 的相容性、iHR320 經 usbredir 的實際運作與速度、實際 XP 的休眠存檔時間。
+尚未驗證（需要 Win11 實機 + iHR320，即 Phase 0）：真正 Windows 上的 WPF 與 WHPX、UsbDk 在 Win11 的相容性、iHR320 經 usbredir 的實際運作與速度、安裝了 XP 之後的休眠存檔時間。
+
+### 12.1 實作中發現並修正的 Windows 問題
+
+| 問題 | 原因 | 修正 |
+|---|---|---|
+| 路徑含中文（例如中文帳號的桌面）時引擎啟動失敗 | Windows 版 QEMU 以系統 ANSI 字碼頁讀取命令列與自身路徑（`system/main.c` 未使用寬字元、`util/cutils.c` 用 `GetModuleFileName`） | QEMU 以 vm 資料夾為工作目錄，只傳純英數路徑（相對路徑 → 8.3 短檔名）；安裝光碟改為複製、匯入來源改為硬連結 |
+| 休眠存檔失敗 | Windows 版 QEMU 的檔案通道未實作非阻塞模式 | 改經本機 TCP 傳送（見 6.2） |
+| 休眠存檔卡住 | Windows 版 QEMU 傳完不關閉連線 | 以資料停止流入判斷結束，再結束引擎並驗證檔案 |
+| 光碟可能被放進軟碟機 | 機器同時有可移除的軟碟機 | 光碟機固定命名為 `cd0` |
 
 ---
 
@@ -305,6 +320,6 @@ XPOptical\
 
 ## 14. 尚待確認
 
-1. **iHR320 的 VID:PID**：把 iHR320 接到 Win11，在「裝置管理員 → 內容 → 詳細資料 → 硬體識別碼」讀取（會看到 `USB\VID_xxxx&PID_xxxx`），填入設定檔。
+1. **iHR320 的 VID:PID**：v0.1.0 起直接在程式的「設定」中選擇 iHR320 即可，不需手動填寫；Phase 0 時記下來，之後可內建到設定檔。
 2. **XP 安裝光碟版本**：是否含 SP3？語言版本（繁體中文）？
 3. **iHR320 是否接了偵測器**（例如透過 iHR320 上的 hub 口）？若有，需要一併轉送。

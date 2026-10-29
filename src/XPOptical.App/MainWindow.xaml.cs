@@ -116,6 +116,7 @@ public partial class MainWindow : Window
         else if (running && _app.Vm!.SoftwareEmulation) fix = "啟用硬體加速";
 
         AccelText.Text = running ? (_app.Vm!.SoftwareEmulation ? "軟體模擬（較慢）" : "硬體加速") : "";
+        AccelSeparator.Visibility = Show(running);
         FixButton.Content = fix;
         FixButton.Visibility = Show(fix is not null);
         FixButton.ToolTip = fix switch

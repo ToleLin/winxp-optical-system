@@ -3,13 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
-        <FontFamily x:Key="UiFont">Microsoft JhengHei UI, Microsoft JhengHei, Segoe UI</FontFamily>
+        <!-- 繁體中文介面：微軟正黑體；最後的 Noto Sans CJK TC 只在沒有正黑體的環境（例如測試用 Wine）才會用到 -->
+        <FontFamily x:Key="UiFont">Microsoft JhengHei UI, Microsoft JhengHei, Segoe UI, Noto Sans CJK TC</FontFamily>
         <SolidColorBrush x:Key="Accent" Color="#1F5FAF" />
         <SolidColorBrush x:Key="ToolbarBackground" Color="#F3F5F8" />
 
-        <Style TargetType="Window">
+        <!-- 提示與選單不在視窗的視覺樹中，不會繼承視窗字型，另外指定 -->
+        <Style TargetType="ToolTip">
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="ContextMenu">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
         </Style>
 
         <Style x:Key="ToolButton" TargetType="Button">
