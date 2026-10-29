@@ -97,6 +97,8 @@ public sealed class VmController : IAsyncDisposable
         if (_spec!.CdromImage is not null)
             throw new InvalidOperationException("光碟機中有光碟時無法休眠");
 
+        // 光碟片不會存進休眠檔；恢復時光碟機必須是空的，所以先退出
+        await EjectMediaAsync(ct);
         SetState(VmState.Saving);
         using var receiveCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         StateReceiver? receiver = null;
@@ -143,6 +145,44 @@ public sealed class VmController : IAsyncDisposable
             _log.Error("休眠檔寫入不完整", ex);
             throw new HibernateIncompleteException(ex);
         }
+    }
+
+    /// <summary>把光碟映像放進 XP 的光碟機（唯讀）。</summary>
+    public async Task InsertMediaAsync(string isoPath, CancellationToken ct = default)
+    {
+        var qmp = RequireRunning();
+        var (id, _) = await FindCdromAsync(qmp, ct);
+        await qmp.ExecuteAsync("blockdev-change-medium", new Dictionary<string, object>
+        {
+            ["id"] = id,
+            ["filename"] = SafePath.MakeSafe(Path.GetFullPath(isoPath), _store.VmDir),
+            ["format"] = "raw",
+            ["read-only-mode"] = "read-only",
+        }, ct);
+        _log.Info($"已放入光碟：{isoPath}");
+    }
+
+    /// <summary>退出 XP 光碟機中的光碟（沒有光碟時不做任何事）。</summary>
+    public async Task EjectMediaAsync(CancellationToken ct = default)
+    {
+        var qmp = RequireRunning();
+        var (id, inserted) = await FindCdromAsync(qmp, ct);
+        if (!inserted) return;
+        await qmp.ExecuteAsync("eject", new { id, force = true }, ct);
+        _log.Info("已退出光碟");
+    }
+
+    /// <summary>光碟機的裝置路徑，以及目前是否有光碟。</summary>
+    private static async Task<(string Id, bool Inserted)> FindCdromAsync(QmpClient qmp, CancellationToken ct)
+    {
+        var blocks = await qmp.ExecuteAsync("query-block", ct: ct);
+        foreach (var b in blocks.EnumerateArray())
+        {
+            if (b.GetProperty("device").GetString() != QemuCommandBuilder.CdromDrive) continue;
+            var id = b.TryGetProperty("qdev", out var qdev) ? qdev.GetString()! : QemuCommandBuilder.CdromDrive;
+            return (id, b.TryGetProperty("inserted", out _));
+        }
+        throw new InvalidOperationException("找不到 XP 的光碟機");
     }
 
     /// <summary>要求 XP 正常關機（等同按下電源鍵）。逾時回傳 false，由呼叫端決定是否強制關閉。</summary>

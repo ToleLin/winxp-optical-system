@@ -108,6 +108,7 @@ public sealed class UsbAttachManager : IAsyncDisposable
             _present = _enumerator.GetPresentDevices();
             var qmp = _qmp;
             if (qmp is null || _usbRedirect is null || _paused) return;
+            await DetachUnwantedAsync(qmp);
 
             foreach (var rule in _rules)
             {
@@ -131,6 +132,31 @@ public sealed class UsbAttachManager : IAsyncDisposable
         {
             _lock.Release();
             StatusChanged?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// 規則改變後（例如在設定中取消勾選隨身碟），把不再需要的裝置從 XP 移除、還給 Windows；
+    /// 仍需要的裝置改掛到新的規則物件上。
+    /// </summary>
+    private async Task DetachUnwantedAsync(QmpClient qmp)
+    {
+        List<Attachment> unwanted;
+        lock (_attached)
+        {
+            foreach (var att in _attached.Values)
+            {
+                if (_rules.FirstOrDefault(r => r.Matches(att.Device.Vid, att.Device.Pid)) is { } rule) att.Rule = rule;
+            }
+            unwanted = _attached.Values.Where(a => !_rules.Any(r => r.Matches(a.Device.Vid, a.Device.Pid))).ToList();
+            foreach (var att in unwanted) _attached.Remove(att.Device.InstanceId);
+        }
+        foreach (var att in unwanted)
+        {
+            att.Detaching = true;
+            await RemoveFromGuestAsync(qmp, att, waitForEvent: true);
+            att.Process.Kill();
+            _log.Info($"已依設定把 USB 裝置 {att.Rule.Name}（{att.Device.IdText}）還給 Windows");
         }
     }
 
@@ -346,7 +372,7 @@ public sealed class UsbAttachManager : IAsyncDisposable
     private sealed class Attachment(UsbDeviceRule rule, UsbDeviceInfo device, string deviceId, string chardevId,
         RedirectProcess process)
     {
-        public UsbDeviceRule Rule { get; } = rule;
+        public UsbDeviceRule Rule { get; set; } = rule;
         public UsbDeviceInfo Device { get; } = device;
         public string DeviceId { get; } = deviceId;
         public string ChardevId { get; } = chardevId;

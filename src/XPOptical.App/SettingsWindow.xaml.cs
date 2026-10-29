@@ -38,6 +38,15 @@ public partial class SettingsWindow : Window
         public override string ToString() => Text;
     }
 
+    /// <summary>「其他 USB 裝置」清單的項目（以資料繫結顯示勾選框）。</summary>
+    public sealed class OtherDeviceItem(string text, UsbId id, string name, bool isChecked)
+    {
+        public string Text { get; } = text;
+        public UsbId Id { get; } = id;
+        public string Name { get; } = name;
+        public bool IsChecked { get; set; } = isChecked;
+    }
+
     private UsbId? CurrentId =>
         _app.Settings.UsbDevices.FirstOrDefault(r => r.Name == InstrumentName)?.Match.FirstOrDefault(m => m.IsValid);
 
@@ -54,6 +63,21 @@ public partial class SettingsWindow : Window
 
         DeviceList.ItemsSource = items;
         DeviceList.SelectedItem = items.FirstOrDefault(i => i.Id?.ToString() == current?.ToString()) ?? items[0];
+
+        // 其他裝置：保留目前的勾選（含沒接上的），再列出現在接著的裝置
+        var checkedNow = OtherDeviceList.ItemsSource is IEnumerable<OtherDeviceItem> shown
+            ? shown.Where(o => o.IsChecked).Select(o => (o.Id.ToString(), o.Name)).ToList()
+            : _app.Settings.UsbDevices.Where(r => r.Name != InstrumentName && r.Match.Any(m => m.IsValid))
+                .Select(r => (r.Match.First(m => m.IsValid).ToString(), r.Name)).ToList();
+        var others = present.Select(d => new OtherDeviceItem(d.DisplayName, new UsbId(d.Vid, d.Pid),
+            d.Description ?? d.IdText, checkedNow.Any(c => c.Item1 == d.IdText))).ToList();
+        foreach (var (id, name) in checkedNow.Where(c => others.All(o => o.Id.ToString() != c.Item1)))
+        {
+            var parts = id.Split(':');
+            others.Add(new OtherDeviceItem($"{name}（{id}，現在沒有接上）", new UsbId { Vid = parts[0], Pid = parts[1] },
+                name, true));
+        }
+        OtherDeviceList.ItemsSource = others;
     }
 
     private void OnRefreshClick(object sender, RoutedEventArgs e) => LoadDevices();
@@ -65,12 +89,18 @@ public partial class SettingsWindow : Window
         if (RamCombo.IsEnabled && RamCombo.SelectedItem is ComboBoxItem { Tag: string tag })
             s.RamMB = int.Parse(tag);
 
-        s.UsbDevices.RemoveAll(r => r.Name == InstrumentName);
-        if (DeviceList.SelectedItem is DeviceItem { Id: { } id })
+        s.UsbDevices.Clear();
+        var instrument = (DeviceList.SelectedItem as DeviceItem)?.Id;
+        if (instrument is not null)
         {
-            // 設定檔若列出韌體下載後的新 ID，一併沿用
+            // iHR320 放第一個（狀態列顯示它）；設定檔若列出韌體下載後的新 ID，一併沿用
             var follow = _app.Profile.Usb.FirstOrDefault(r => r.Name == InstrumentName)?.FollowReenumeration ?? [];
-            s.UsbDevices.Add(new UsbDeviceRule { Name = InstrumentName, Match = [id], FollowReenumeration = follow });
+            s.UsbDevices.Add(new UsbDeviceRule { Name = InstrumentName, Match = [instrument], FollowReenumeration = follow });
+        }
+        foreach (var o in ((IEnumerable<OtherDeviceItem>?)OtherDeviceList.ItemsSource ?? []).Where(o => o.IsChecked))
+        {
+            if (o.Id.ToString() == instrument?.ToString()) continue;
+            s.UsbDevices.Add(new UsbDeviceRule { Name = o.Name, Match = [o.Id] });
         }
         DialogResult = true;
     }

@@ -185,6 +185,45 @@ public sealed class IntegrationTests : IDisposable
         await QemuTest.WaitUntilAsync(() => UsbStatus(app).State == UsbLinkState.Idle, Wait, "停止後顯示閒置");
     }
 
+    private static async Task<string?> InsertedMediaAsync(AppController app)
+    {
+        var blocks = await app.Vm!.Qmp!.ExecuteAsync("query-block");
+        var cd = blocks.EnumerateArray().Single(b => b.GetProperty("device").GetString() == "cd0");
+        return cd.TryGetProperty("inserted", out var ins) ? ins.GetProperty("file").GetString() : null;
+    }
+
+    [SkippableFact]
+    public async Task InsertFolderAndIsoIntoXpCdrom()
+    {
+        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        await using var app = CreateApp();
+        await app.StartAsync();
+
+        // 資料夾 -> 光碟映像 -> 放進 XP 的光碟機
+        var folder = Path.Combine(_dir.Path, "光學軟體");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "setup.exe"), "MZ");
+        await app.InsertFolderAsync(folder);
+        Assert.Equal("import.iso", Path.GetFileName(await InsertedMediaAsync(app)));
+
+        await app.EjectMediaAsync();
+        Assert.Null(await InsertedMediaAsync(app));
+
+        // 中文路徑的 ISO 會先複製到 vm 資料夾
+        var iso = Path.Combine(_dir.Path, "光碟 映像.iso");
+        File.Copy(app.ImportIsoPath, iso);
+        await app.InsertIsoAsync(iso);
+        Assert.Equal("import.iso", Path.GetFileName(await InsertedMediaAsync(app)));
+
+        // 有光碟時也能休眠（先自動退出），恢復後光碟機是空的
+        Assert.Equal(CloseOutcome.Closed, await app.CloseAsync());
+        Assert.False(File.Exists(app.ImportIsoPath));
+        var resumed = await app.StartAsync();
+        Assert.True(resumed.Resumed, resumed.ResumeFailure);
+        Assert.Null(await InsertedMediaAsync(app));
+        await app.PowerOffAsync();
+    }
+
     [SkippableFact]
     public async Task ChangingRamDiscardsSavedState()
     {
@@ -199,6 +238,26 @@ public sealed class IntegrationTests : IDisposable
         var started = await app.StartAsync();
         Assert.False(started.Resumed);
         Assert.False(app.CanResume);
+        await app.PowerOffAsync();
+    }
+
+    [SkippableFact]
+    public async Task UncheckingDeviceInSettingsReturnsItToWindows()
+    {
+        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        await using var app = CreateApp();
+        File.WriteAllText(Present, "");
+        _usb.Set(FakeIhr320);
+        await app.StartAsync();
+        await QemuTest.WaitUntilAsync(() => UsbStatus(app).State == UsbLinkState.Connected, Wait, "USB 已連線");
+
+        // 使用者在設定中取消勾選
+        app.Settings.UsbDevices.Clear();
+        app.SaveSettings();
+        await app.Usb.ScanAsync();
+
+        Assert.Empty(app.Usb.GetStatus());
+        Assert.DoesNotContain(await PeripheralsAsync(app), p => p.StartsWith("usbdev"));
         await app.PowerOffAsync();
     }
 

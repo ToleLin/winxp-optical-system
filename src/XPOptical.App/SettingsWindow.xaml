@@ -26,6 +26,20 @@
             </StackPanel>
         </GroupBox>
 
+        <GroupBox Header="其他要連到 XP 的 USB 裝置（例如用來複製量測資料的隨身碟）" Padding="10" Margin="0,0,0,12">
+            <StackPanel>
+                <ListBox x:Name="OtherDeviceList" Height="110">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Text}" IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock TextWrapping="Wrap" Foreground="#777" FontSize="12" Margin="0,6,0,0"
+                           Text="勾選的裝置連到 XP 時，Windows 這邊會暫時看不到它。複製完成後先在 XP 裡「安全地移除硬體」，再回到這裡取消勾選，裝置就會回到 Windows。" />
+            </StackPanel>
+        </GroupBox>
+
         <GroupBox Header="XP 記憶體" Padding="10" Margin="0,0,0,16">
             <StackPanel>
                 <ComboBox x:Name="RamCombo" Width="200" HorizontalAlignment="Left">

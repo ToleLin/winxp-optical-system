@@ -6,6 +6,7 @@
         Icon="app.ico"
         Width="1120" Height="880" MinWidth="820" MinHeight="620"
         WindowStartupLocation="CenterScreen"
+        AllowDrop="True" Drop="OnDrop"
         Background="#15181D">
     <DockPanel>
         <!-- 工具列：只放少數按鈕 -->
@@ -17,7 +18,19 @@
                             Click="OnStartClick" ToolTip="開啟 XP（若上次是休眠，會回到關閉前的畫面）" />
                     <Button x:Name="CtrlAltDelButton" Style="{StaticResource ToolButton}" Content="Ctrl+Alt+Del"
                             Click="OnCtrlAltDelClick" ToolTip="傳送 Ctrl+Alt+Del 到 XP（Windows 會攔截這組按鍵）" />
-                    <Button x:Name="ShutdownButton" Style="{StaticResource ToolButton}" Content="⏻ 關機"
+                    <Button x:Name="MediaButton" Style="{StaticResource ToolButton}" Content="放入檔案 ▼"
+                            Click="OnMediaClick"
+                            ToolTip="把安裝檔等檔案做成光碟放進 XP（也可以直接把資料夾拖進視窗）">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="匯入資料夾（做成光碟放進 XP）…" Click="OnInsertFolderClick" />
+                                <MenuItem Header="放入光碟映像（ISO 檔）…" Click="OnInsertIsoClick" />
+                                <Separator />
+                                <MenuItem Header="退出光碟" Click="OnEjectClick" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button x:Name="ShutdownButton" Style="{StaticResource ToolButton}" Content="■ 關機"
                             Click="OnShutdownClick" ToolTip="讓 XP 正常關機" />
                     <Button x:Name="InstallDoneButton" Style="{StaticResource ToolButton}" Content="✔ XP 安裝完成"
                             Click="OnInstallDoneClick" Visibility="Collapsed"

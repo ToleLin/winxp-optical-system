@@ -27,6 +27,8 @@ public static class QemuCommandBuilder
     /// <summary>USB 裝置掛載的匯流排：ICH9 EHCI，全速/低速裝置自動交給 UHCI 伴隨控制器。</summary>
     public const string UsbBus = "ehci.0";
     public const int VncBasePort = 5900;
+    /// <summary>光碟機的磁碟名稱（機器上還有軟碟機，不能只看「可移除」）。</summary>
+    public const string CdromDrive = "cd0";
 
     public static IReadOnlyList<string> Build(VmLaunchSpec spec, VmEndpoints ep)
     {
@@ -44,8 +46,8 @@ public static class QemuCommandBuilder
             "-rtc", "base=localtime",
             "-drive", $"file={EscapeOption(spec.SystemDisk)},if=ide,index=0,media=disk,format=qcow2,cache=writeback",
             "-drive", spec.CdromImage is null
-                ? "if=ide,index=2,media=cdrom"
-                : $"file={EscapeOption(spec.CdromImage)},if=ide,index=2,media=cdrom,format=raw",
+                ? $"if=ide,index=2,media=cdrom,id={CdromDrive}"
+                : $"file={EscapeOption(spec.CdromImage)},if=ide,index=2,media=cdrom,format=raw,id={CdromDrive}",
             "-boot", spec.BootFromCdrom ? "order=dc,menu=off" : "order=c,menu=off",
             // XP 內建 Cirrus 驅動，免安裝即可 1024x768
             "-vga", "cirrus",

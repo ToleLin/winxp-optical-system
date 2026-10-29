@@ -1,4 +1,5 @@
 using XPOptical.Core.Diagnostics;
+using XPOptical.Core.Media;
 using XPOptical.Core.Profiles;
 using XPOptical.Core.Qemu;
 using XPOptical.Core.Usb;
@@ -143,6 +144,62 @@ public sealed class AppController : IAsyncDisposable
         return CloseOutcome.Closed;
     }
 
+    /// <summary>「放入檔案」產生的光碟映像。</summary>
+    public string ImportIsoPath => Path.Combine(Store.VmDir, "import.iso");
+
+    /// <summary>把資料夾做成光碟放進 XP（例如光學軟體的安裝檔）。</summary>
+    public async Task InsertFolderAsync(string folder, CancellationToken ct = default)
+    {
+        var vm = RequireRunningVm();
+        await vm.EjectMediaAsync(ct); // 釋放舊的 import.iso 才能覆寫
+        await IsoBuilder.BuildFromFolderAsync(folder, ImportIsoPath, ct);
+        await vm.InsertMediaAsync(ImportIsoPath, ct);
+    }
+
+    /// <summary>把光碟映像檔放進 XP。路徑含中文時先複製到 vm 資料夾。</summary>
+    public async Task InsertIsoAsync(string isoPath, CancellationToken ct = default)
+    {
+        var vm = RequireRunningVm();
+        await vm.EjectMediaAsync(ct);
+        var path = isoPath;
+        if (SafePath.TryMakeSafe(Path.GetFullPath(isoPath), Store.VmDir) is null)
+        {
+            await using var src = File.OpenRead(isoPath);
+            await using var dst = File.Create(ImportIsoPath);
+            await src.CopyToAsync(dst, ct);
+            path = ImportIsoPath;
+        }
+        await vm.InsertMediaAsync(path, ct);
+    }
+
+    /// <summary>
+    /// 拖進視窗的項目：單一 ISO 直接放入；單一資料夾放入其內容；其他（檔案、多個項目）做成一片光碟。
+    /// </summary>
+    public async Task InsertItemsAsync(IReadOnlyList<string> items, CancellationToken ct = default)
+    {
+        if (items.Count == 1 && File.Exists(items[0])
+            && Path.GetExtension(items[0]).Equals(".iso", StringComparison.OrdinalIgnoreCase))
+        {
+            await InsertIsoAsync(items[0], ct);
+        }
+        else if (items.Count == 1 && Directory.Exists(items[0]))
+        {
+            await InsertFolderAsync(items[0], ct);
+        }
+        else
+        {
+            var vm = RequireRunningVm();
+            await vm.EjectMediaAsync(ct);
+            await IsoBuilder.BuildFromItemsAsync(items, ImportIsoPath, ct);
+            await vm.InsertMediaAsync(ImportIsoPath, ct);
+        }
+    }
+
+    public Task EjectMediaAsync(CancellationToken ct = default) => RequireRunningVm().EjectMediaAsync(ct);
+
+    private VmController RequireRunningVm() =>
+        IsRunning ? Vm! : throw new InvalidOperationException("請先開啟 XP");
+
     public async Task ImportImageAsync(string sourcePath, IProgress<double>? progress, CancellationToken ct = default)
     {
         if (Engine is null) throw new InvalidOperationException("找不到執行引擎（engine 資料夾）");
@@ -264,6 +321,8 @@ public sealed class AppController : IAsyncDisposable
         {
             _scanCts?.Cancel();
             _ = Usb.UnbindAsync();
+            try { if (File.Exists(ImportIsoPath)) File.Delete(ImportIsoPath); }
+            catch (IOException) { }
         }
         Changed?.Invoke();
     }

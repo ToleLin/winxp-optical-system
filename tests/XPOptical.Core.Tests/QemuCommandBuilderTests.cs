@@ -44,7 +44,7 @@ public class QemuCommandBuilderTests
     public void EmptyCdromDriveIsAlwaysPresent()
     {
         var args = QemuCommandBuilder.Build(Spec, new VmEndpoints(1, 5900));
-        Assert.Equal("if=ide,index=2,media=cdrom", Arg(args, "-drive", 1));
+        Assert.Equal("if=ide,index=2,media=cdrom,id=cd0", Arg(args, "-drive", 1));
         Assert.Equal("order=c,menu=off", Arg(args, "-boot"));
     }
 
@@ -53,7 +53,7 @@ public class QemuCommandBuilderTests
     {
         var args = QemuCommandBuilder.Build(Spec with { CdromImage = @"D:\iso\xp.iso", BootFromCdrom = true },
             new VmEndpoints(1, 5900));
-        Assert.Equal(@"file=D:\iso\xp.iso,if=ide,index=2,media=cdrom,format=raw", Arg(args, "-drive", 1));
+        Assert.Equal(@"file=D:\iso\xp.iso,if=ide,index=2,media=cdrom,format=raw,id=cd0", Arg(args, "-drive", 1));
         Assert.Equal("order=dc,menu=off", Arg(args, "-boot"));
     }
 

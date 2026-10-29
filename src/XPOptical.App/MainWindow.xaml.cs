@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Win32;
@@ -67,6 +69,7 @@ public partial class MainWindow : Window
 
         StartButton.IsEnabled = stopped && _app.Store.IsInstalled && _busyText is null;
         CtrlAltDelButton.IsEnabled = running;
+        MediaButton.IsEnabled = running && !_app.InstallMode && _busyText is null;
         ShutdownButton.IsEnabled = running && !_app.InstallMode;
         InstallDoneButton.Visibility = Show(_app.InstallMode && running);
         SettingsButton.IsEnabled = _busyText is null;
@@ -86,7 +89,8 @@ public partial class MainWindow : Window
 
     private void RefreshUsbStatus()
     {
-        var status = _app.Usb.GetStatus().FirstOrDefault();
+        var all = _app.Usb.GetStatus();
+        var status = all.FirstOrDefault();
         (Brush dot, string text, string? tip) = (status, _app.Usb.IsAvailable) switch
         {
             (_, false) => (Brushes.Gray, "USB 轉送元件缺少（engine 資料夾不完整）", null),
@@ -98,6 +102,8 @@ public partial class MainWindow : Window
             ({ State: UsbLinkState.Failed }, _) => (Brushes.OrangeRed, $"{status.Name}：連線失敗", status.Detail),
             _ => (Brushes.Gray, $"{status.Name}：XP 未開啟", null),
         };
+        var others = all.Skip(1).Count(s => s.State == UsbLinkState.Connected);
+        if (others > 0) text += $"　（另有 {others} 個 USB 裝置連到 XP）";
         UsbDot.Fill = dot;
         UsbStatusText.Text = text;
         UsbStatusText.ToolTip = tip;
@@ -352,6 +358,71 @@ public partial class MainWindow : Window
             ImportButton.IsEnabled = InstallButton.IsEnabled = true;
             RefreshUi();
         }
+    }
+
+    // ───────────── 放入檔案（光碟） ─────────────
+
+    private void OnMediaClick(object sender, RoutedEventArgs e)
+    {
+        var menu = MediaButton.ContextMenu!;
+        menu.PlacementTarget = MediaButton;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private async void OnInsertFolderClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog { Title = "選擇要放進 XP 的資料夾（例如光學軟體的安裝檔）" };
+        if (dlg.ShowDialog(this) == true) await InsertAsync([dlg.FolderName]);
+    }
+
+    private async void OnInsertIsoClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = "選擇光碟映像（ISO 檔）",
+            Filter = "光碟映像檔 (*.iso)|*.iso|所有檔案 (*.*)|*.*",
+        };
+        if (dlg.ShowDialog(this) == true) await InsertAsync([dlg.FileName]);
+    }
+
+    private async void OnEjectClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _app.EjectMediaAsync();
+        }
+        catch (Exception ex)
+        {
+            Error($"無法退出光碟：\n{ex.Message}");
+        }
+        Display.Focus();
+    }
+
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] { Length: > 0 } items) return;
+        if (!_app.IsRunning || _app.InstallMode)
+        {
+            Info("請先開啟 XP，再把檔案拖進來。");
+            return;
+        }
+        await InsertAsync(items);
+    }
+
+    private async Task InsertAsync(IReadOnlyList<string> items)
+    {
+        try
+        {
+            await RunBusyAsync("正在把檔案放進 XP 的光碟機…", () => _app.InsertItemsAsync(items));
+            Info("已放進 XP 的光碟機。\n\n請在 XP 的「我的電腦」開啟光碟機；用完可從「放入檔案 ▼」選「退出光碟」。");
+        }
+        catch (Exception ex)
+        {
+            _log.Error("放入檔案失敗", ex);
+            Error($"無法放入檔案：\n{ex.Message}");
+        }
+        Display.Focus();
     }
 
     // ───────────── 其他按鈕 ─────────────
