@@ -13,6 +13,10 @@ public sealed record VmLaunchSpec
     public string? FirmwareDir { get; init; }
     /// <summary>光碟機內的映像；null 表示空的光碟機（光碟機一律存在，讓裝置組成固定）。</summary>
     public string? CdromImage { get; init; }
+    /// <summary>
+    /// 安裝模式：先試硬碟，硬碟還不能開機（全新磁碟）時才從光碟開機。XP 複製完檔案、第一次重新開機後
+    /// 就一律從硬碟繼續，不會出現「Press any key to boot from CD」，安裝也不會因按到鍵或光碟不提示而從頭重來。
+    /// </summary>
     public bool BootFromCdrom { get; init; }
     /// <summary>磁碟片 A: 的映像（XP 無人值守安裝時放 WINNT.SIF）；null 表示不接磁碟片。</summary>
     public string? FloppyImage { get; init; }
@@ -58,7 +62,7 @@ public static class QemuCommandBuilder
         if (spec.FloppyImage is not null)
             args.AddRange(["-drive", $"file={EscapeOption(spec.FloppyImage)},if=floppy,index=0,format=raw"]);
         args.AddRange([
-            "-boot", spec.BootFromCdrom ? "order=dc,menu=off" : "order=c,menu=off",
+            "-boot", spec.BootFromCdrom ? "order=cd,menu=off" : "order=c,menu=off",
             // XP 內建 Cirrus 驅動，免安裝即可 1024x768
             "-vga", "cirrus",
             // XP 相容 USB 拓撲：EHCI + 3 組 UHCI，不使用 XP 沒有驅動的 xHCI

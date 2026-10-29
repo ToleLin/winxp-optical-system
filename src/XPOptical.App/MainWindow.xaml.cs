@@ -297,7 +297,6 @@ public partial class MainWindow : Window
             });
             Info("XP 開始自動安裝。\n\n" +
                  "• 約需 30–90 分鐘，期間會重新開機數次，不需要操作。\n" +
-                 "• 出現「Press any key to boot from CD」時不要按任何鍵。\n" +
                  "• 可以最小化視窗，但請不要關閉程式；完成後會自動進入 XP 桌面。");
         }
         catch (Exception ex)
@@ -345,7 +344,7 @@ public partial class MainWindow : Window
             });
             Info("XP 安裝程式即將出現。\n\n" +
                  "• 照著 XP 安裝畫面操作（選擇磁碟、輸入序號等）。\n" +
-                 "• 安裝過程會自動重新開機數次，出現「Press any key to boot from CD」時不要按任何鍵。\n" +
+                 "• 安裝過程會自動重新開機數次。\n" +
                  "• 看到 XP 桌面後，按工具列的「✔ XP 安裝完成」。");
         }
         catch (Exception ex)

@@ -37,6 +37,26 @@ public class UnattendedSetupTests
     }
 
     [Fact]
+    public async Task OfficialDiscHasNoWarning()
+    {
+        using var dir = new TempDir();
+        var info = XpIsoInfo.Inspect(await FakeXpIsoAsync(dir.Path, "WIN51", "WIN51IP", "WIN51IP.SP3"));
+        Assert.False(info.HasOwnAnswerFile);
+        Assert.Null(info.Warning);
+    }
+
+    [Theory]
+    [InlineData(new[] { "WIN51", "WIN51IP", "WIN51IP.SP4" }, "SP4")]                 // 第三方的「SP4」
+    [InlineData(new[] { "WIN51", "WIN51IP", "WIN51IP.SP3", "I386/WINNT.SIF" }, "WINNT.SIF")]  // 自帶自動安裝設定
+    public async Task WarnsAboutModifiedDiscs(string[] files, string reason)
+    {
+        using var dir = new TempDir();
+        var info = XpIsoInfo.Inspect(await FakeXpIsoAsync(dir.Path, files));
+        Assert.True(info.IsXp);
+        Assert.Contains(reason, info.Warning);
+    }
+
+    [Fact]
     public async Task RejectsNonXpIso()
     {
         using var dir = new TempDir();
