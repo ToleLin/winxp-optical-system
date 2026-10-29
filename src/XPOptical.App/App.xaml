@@ -1,0 +1,50 @@
+<Application x:Class="XPOptical.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <!-- 繁體中文介面：微軟正黑體；最後的 Noto Sans CJK TC 只在沒有正黑體的環境（例如測試用 Wine）才會用到 -->
+        <FontFamily x:Key="UiFont">Microsoft JhengHei UI, Microsoft JhengHei, Segoe UI, Noto Sans CJK TC</FontFamily>
+        <SolidColorBrush x:Key="Accent" Color="#1F5FAF" />
+        <SolidColorBrush x:Key="ToolbarBackground" Color="#F3F5F8" />
+
+        <!-- 提示與選單不在視窗的視覺樹中，不會繼承視窗字型，另外指定 -->
+        <Style TargetType="ToolTip">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+        <Style TargetType="ContextMenu">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="BigButton" TargetType="Button">
+            <Setter Property="Margin" Value="0,8" />
+            <Setter Property="Padding" Value="24,12" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="MinWidth" Value="320" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#AAB4C3" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="MaxWidth" Value="520" />
+        </Style>
+
+        <Style x:Key="Title" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+    </Application.Resources>
+</Application>

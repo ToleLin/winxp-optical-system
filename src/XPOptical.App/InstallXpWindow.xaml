@@ -1,0 +1,34 @@
+<Window x:Class="XPOptical.App.InstallXpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="自動安裝 XP" FontFamily="{StaticResource UiFont}" FontSize="14" Width="560" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="20">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="選擇 XP 安裝光碟並輸入產品序號，其餘全部自動完成：分割磁碟、安裝、重新開機，最後直接進入 XP 桌面。" />
+
+        <TextBlock Text="XP 安裝光碟（ISO 檔）" FontWeight="SemiBold" />
+        <DockPanel Margin="0,6,0,4">
+            <Button DockPanel.Dock="Right" Content="瀏覽…" Padding="12,4" Margin="8,0,0,0" Click="OnBrowseClick" />
+            <TextBox x:Name="IsoBox" IsReadOnly="True" VerticalContentAlignment="Center" Padding="4" />
+        </DockPanel>
+        <TextBlock x:Name="IsoInfo" Foreground="#555" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap" />
+
+        <TextBlock Text="產品序號" FontWeight="SemiBold" />
+        <TextBox x:Name="KeyBox" Margin="0,6,0,4" Padding="4" FontFamily="Consolas, Microsoft JhengHei UI, Noto Sans CJK TC"
+                 FontSize="16" CharacterCasing="Upper" MaxLength="40" TextChanged="OnKeyChanged" />
+        <TextBlock x:Name="KeyInfo" Foreground="#555" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap"
+                   Text="25 碼，印在光碟包裝或電腦上的 COA 貼紙，例如 XXXXX-XXXXX-XXXXX-XXXXX-XXXXX。" />
+
+        <Border Background="#FFF8E5" BorderBrush="#F0D58C" BorderThickness="1" Padding="10" Margin="0,0,0,16">
+            <TextBlock TextWrapping="Wrap" FontSize="13"
+                       Text="安裝約需 30–90 分鐘（依電腦速度），全程自動，期間 XP 會重新開機數次。可以最小化視窗去做別的事，但請不要關閉程式。完成後會自動進入 XP 桌面。" />
+        </Border>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="StartButton" Content="開始自動安裝" IsDefault="True" IsEnabled="False" Padding="20,6"
+                    Margin="0,0,8,0" Click="OnStartClick" />
+            <Button Content="取消" IsCancel="True" Padding="20,6" />
+        </StackPanel>
+    </StackPanel>
+</Window>

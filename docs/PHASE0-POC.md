@@ -1,174 +1,71 @@
-# Phase 0：可行性驗證步驟
+# Phase 0：Win11 實機 + iHR320 驗證
 
-在寫任何程式碼之前，先用**現成工具**在實際的 Win11 電腦 + 實際儀器上驗證整條路線可行。
-這一步能在最早期發現「做不到」的情況（例如儀器其實依賴 PCI 卡），並取得之後最佳化要對照的基準數據。
+程式已在雲端完成建置與自動化測試（含用 Wine 執行隨附的 Windows 版引擎），但以下事項**只能在真正的 Win11 電腦 + iHR320 上確認**：
 
-> 指令格式為 Windows 命令提示字元（`^` 為換行接續）。各工具的參數請以實際版本的 `--help` 為準。
+- TCG 軟體模擬跑 XP 與光學軟體的速度（不使用硬體加速）
+- UsbDk 驅動在 Win11 上的安裝與運作（含「記憶體完整性」開啟時）
+- iHR320 經 USB 轉送後，XP 驅動與光學軟體能否正常控制，以及掃描速度
+- 真實 XP 的休眠存檔/恢復時間，以及恢復後光學軟體能否繼續使用 iHR320
+
+這份文件給負責測試的人使用。整個流程都透過 XP 光學系統本身操作，不需要下任何指令。
 
 ---
 
-## 0. 準備
+## 1. 準備
 
 | 項目 | 說明 |
 |---|---|
-| Win11 電腦 | 在「開啟或關閉 Windows 功能」啟用 **Windows Hypervisor Platform**，重新開機 |
-| QEMU for Windows | QEMU 官方網站 Windows 下載頁所連結的 64 位元安裝版 |
-| UsbDk | Red Hat 釋出的 UsbDk 安裝檔（daynix/UsbDk） |
-| usbredirect | usbredir 專案的工具（spice/usbredir）；若找不到 Windows 編譯版，Phase 0 可改用 virt-viewer for Windows 內建的 USB 轉送功能驗證同一條路徑 |
-| XP 映像 | 見步驟 1 |
+| Win10/11 電腦 | 64 位元；可用空間 10 GB 以上（不需要硬體虛擬化或 Hyper-V） |
+| 程式 | 從 GitHub Actions 下載 `XPOptical-Setup`（單一安裝檔） |
+| XP 安裝光碟 | 零售版光碟做成的 ISO 檔（改名為 `xp.iso`，放在安裝檔旁邊）與產品序號 |
+| 光學軟體 | 光學軟體與 iHR320 驅動的安裝檔（放在一個資料夾） |
+| 儀器 | iHR320 + USB 線 |
 
----
+## 2. 操作步驟
 
-## 1. 取得 XP 映像（二選一）
+依 `C:\XPOptical\使用說明.txt` 的「第一次使用」進行：
 
-### 方案 A（建議）：從現有 XP 儀器電腦直接轉換（P2V）
+1. 執行 `XPOptical-Setup-<版本>.exe`（旁邊放 `xp.iso`），一路「下一步」。USB 驅動會一併安裝。
+2. 安裝完成後程式自動開啟並出現「自動安裝 XP」：確認偵測到「Windows XP … SP3」，輸入產品序號，按「開始自動安裝」。
+3. 等待 XP 全自動安裝完成（約 30–90 分鐘），程式會自動進入 XP 桌面。
+4. 把光學軟體安裝檔資料夾拖進視窗，在 XP 裡安裝光學軟體與 iHR320 驅動。
+5. 「設定」→ 選擇 iHR320 → 確定。狀態列應顯示「iHR320：已連線」。
+6. 用光學軟體實際操作 iHR320，並做第 3 節的測試。
 
-好處：光學軟體、驅動程式、校正檔、授權都已經裝好設定好，不需要找原始安裝光碟。
+## 3. 測試項目與回報表
 
-1. **在舊 XP 電腦上先處理磁碟控制器驅動程式**：XP 換到不同的磁碟控制器時常會藍底當機（STOP 0x0000007B）。轉換前先啟用 XP 內建的通用 IDE 驅動程式（一般稱為 MergeIDE 修正）。
-2. 在舊電腦上執行 Sysinternals **Disk2vhd**，產生 `.vhd`（不要勾選 VHDX）。
-3. 在 Win11 上轉檔：
-   ```bat
-   qemu-img convert -p -f vpc -O qcow2 xp.vhd base.qcow2
-   ```
+| # | 項目 | 怎麼看 | 結果 |
+|---|---|---|---|
+| 1 | 執行方式 | 狀態列應顯示「軟體模擬」 | |
+| 2 | XP 全自動安裝是否順利、約花多久；是否有需要手動操作的畫面（若有請截圖） | — | |
+| 3 | iHR320 的 VID:PID 與名稱 | 「設定」清單中 iHR320 那一行 | |
+| 4 | 是否有韌體重新列舉 | XP 出現兩次「發現新硬體」，或「設定」清單中 iHR320 的 ID 變了 | |
+| 5 | 光學軟體能否控制 iHR320 | 移動光柵、讀取等平常操作 | |
+| 6 | 掃描時間 | 做一次平常的掃描（固定範圍與步距）計時；若記得舊 XP 電腦的時間一併填寫 | |
+| 7 | 休眠存檔時間 | 按 ✕ 關閉；`logs` 紀錄檔中「休眠存檔完成：xx MB，x 秒」 | |
+| 8 | 恢復時間 | 再開啟；紀錄檔中「已從休眠檔恢復：x 秒」 | |
+| 9 | 恢復後軟體能否直接用 iHR320 | 恢復後直接操作儀器 | |
+| 10 | 休眠期間 iHR320 斷電的影響 | 關閉程式 → 關掉 iHR320 電源再開 → 開啟程式 → 操作 | |
+| 11 | 拔插 USB 線 | 使用中拔掉再插上，狀態列是否自動回到「已連線」、軟體是否恢復 | |
+| 12 | 隨身碟拿出資料 | 依使用說明「把量測資料拿出來」操作 | |
+| 13 | 路徑含中文 | （選做）把資料夾放在桌面（中文帳號時路徑含中文）測試是否正常 | |
+| 14 | 其他錯誤訊息 | 截圖 | |
 
-### 方案 B：全新安裝
+回報方式：程式的「設定」→ 左下角「產生問題回報…」，把桌面上的 `XPOptical-report-日期.zip`（內含紀錄檔、設定與電腦環境資訊，不含 XP 磁碟）連同這張表格與截圖傳回。
 
-用原始 XP 光碟（`.iso`）安裝到新磁碟映像，再安裝光學軟體與儀器驅動程式：
-```bat
-qemu-img create -f qcow2 base.qcow2 8G
-```
+## 3.1 回報與修正的循環
 
----
+1. 本機（Win11 + iHR320）照上表測試，遇到問題就產生問題回報。
+2. 把回報 zip 與表格交給雲端開發端（在 Claude Code 對話中附上，或由本機的 Claude 工作階段傳送）。
+3. 雲端修正、跑完自動化測試後推送；GitHub Actions 產生新的免安裝版。
+4. 本機先在程式中讓 XP **正常關機**（工具列「■ 關機」，避免休眠中的畫面因引擎更新而無法恢復），再下載新版，覆蓋 `XPOptical.exe`、`engine`、`drivers`、`profiles` 與說明檔（保留 `vm` 資料夾與 `settings.json`，XP 不需重裝），重測未通過的項目。
+5. 重複直到全部通過，定為正式版。
 
-## 2. 建立差異映像（保護 base）
+## 4. 依結果調整
 
-```bat
-qemu-img create -f qcow2 -b base.qcow2 -F qcow2 system.qcow2
-```
-
-之後所有測試都只寫入 `system.qcow2`；測壞了刪掉重建即可。
-
----
-
-## 3. 啟動 XP（尚未接儀器）
-
-```bat
-qemu-system-i386.exe ^
-  -accel whpx -accel tcg ^
-  -machine pc -m 512 ^
-  -drive file=system.qcow2,if=ide,cache=writeback ^
-  -vga cirrus ^
-  -device ich9-usb-ehci1,id=ehci,addr=1d.7,multifunction=on ^
-  -device ich9-usb-uhci1,addr=1d.0,multifunction=on,masterbus=ehci.0,firstport=0 ^
-  -device ich9-usb-uhci2,addr=1d.1,multifunction=on,masterbus=ehci.0,firstport=2 ^
-  -device ich9-usb-uhci3,addr=1d.2,multifunction=on,masterbus=ehci.0,firstport=4 ^
-  -device usb-tablet,bus=ehci.0 ^
-  -nic none ^
-  -qmp tcp:127.0.0.1:4444,server=on,wait=off
-```
-
-說明：
-- `-accel whpx -accel tcg`：優先用硬體加速，失敗時退回軟體模擬。**記錄實際用的是哪一個**（QEMU 啟動訊息會顯示）。
-- `-vga cirrus`：XP 內建驅動程式，免安裝即可 1024×768。
-- EHCI + 3 組 UHCI：XP 相容的 USB 2.0/1.1 拓撲（不用 xHCI）。
-- `usb-tablet`：滑鼠游標不會被鎖在視窗裡。
-- `-nic none`：XP 不連網。
-
-**記錄**：冷開機到軟體可操作的時間。
-
----
-
-## 4. 接上 USB 儀器（本專案的 USB 路線）
-
-1. 安裝 UsbDk。
-2. 在 Win11 端查儀器的 VID:PID（裝置管理員 → 內容 → 詳細資料 → 硬體識別碼，例如 `USB\VID_1234&PID_5678`）。
-3. 在第 3 步的 QEMU 參數加上：
-   ```bat
-   -chardev socket,id=ur1,host=127.0.0.1,port=4000,server=on,wait=off ^
-   -device usb-redir,chardev=ur1,id=ur1dev,bus=ehci.0
-   ```
-4. QEMU 開好後，另開一個命令提示字元：
-   ```bat
-   usbredirect --device 1234:5678 --to 127.0.0.1:4000
-   ```
-5. XP 應出現「發現新硬體」，安裝/載入原本的 XP 驅動程式，然後用光學軟體實際操作儀器。
-
-**若儀器會下載韌體後重新列舉**（XP 裡出現兩次「發現新硬體」、Win11 端看到 VID:PID 改變），記錄前後兩組 ID —— 這正是設定檔 `followReenumeration` 要處理的情況，Phase 0 先手動再執行一次 `usbredirect` 接上新 ID。
-
-### 4.1 （選用）重現現有方案的 10 ms 輪詢問題
-
-用 Zadig 把儀器驅動程式換成 WinUSB，改用 QEMU 內建直通：
-```bat
--device usb-host,vendorid=0x1234,productid=0x5678,bus=ehci.0
-```
-用同一個軟體操作（例如連續擷取 100 筆資料）計時，和 usbredir 路線比較。測完記得在裝置管理員把驅動程式還原。
-
----
-
-## 5. 接上 COM 儀器
-
-1. 原版 QEMU **不會**把 XP 內的鮑率設定傳到實體 COM，啟動時會跳出 COM 設定對話框 —— 請直接在對話框中設定成儀器使用的鮑率/同位元/停止位元（這就是第 5 節要修補的問題）。
-2. 在 QEMU 參數加上（以 Win11 端 COM9 為例，COM10 以上寫成 `\\.\COM10`）：
-   ```bat
-   -chardev serial,id=com1,path=COM9 ^
-   -device isa-serial,chardev=com1,index=0
-   ```
-3. XP 裡的 COM1 即對應 Win11 的 COM9，用光學軟體測試通訊。
-
-**記錄**：軟體是否會在執行中變更鮑率（若會，原版 QEMU 必定失敗，可直接證明修補的必要性）；是否用到 DTR/RTS 硬體握手。
-
----
-
-## 6. 休眠 / 恢復測試
-
-以 QMP 連到 `127.0.0.1:4444`（任何可收發文字的 TCP 工具皆可，連上後先送 `{"execute":"qmp_capabilities"}`）：
-
-```json
-{"execute":"stop"}
-{"execute":"migrate","arguments":{"uri":"file:C:/xptest/state.bin"}}
-{"execute":"query-migrate"}
-{"execute":"quit"}
-```
-重複 `query-migrate` 直到狀態為 `completed` 再送 `quit`。
-
-恢復：用**完全相同**的參數再加上 `-incoming defer` 啟動，然後：
-```json
-{"execute":"migrate-incoming","arguments":{"uri":"file:C:/xptest/state.bin"}}
-{"execute":"cont"}
-```
-
-**存檔時 VM 的裝置組成必須和恢復時的啟動參數一致**，所以這個測試要把 USB 儀器改成用 QMP 熱插拔：從啟動參數中拿掉第 4 步加的 `-chardev socket…` 與 `-device usb-redir…` 兩行，改在 XP 開好後送出：
-
-```json
-{"execute":"chardev-add","arguments":{"id":"ur1","backend":{"type":"socket","data":{"addr":{"type":"inet","data":{"host":"127.0.0.1","port":"4000"}},"server":true,"wait":false}}}}
-{"execute":"device_add","arguments":{"driver":"usb-redir","chardev":"ur1","id":"ur1dev","bus":"ehci.0"}}
-```
-再執行 `usbredirect`。存檔前先移除，恢復後再用同樣的指令接回，觀察軟體是否能重新連上儀器：
-```json
-{"execute":"device_del","arguments":{"id":"ur1dev"}}
-{"execute":"chardev-remove","arguments":{"id":"ur1"}}
-```
-
-> `file:` 遷移需要較新版本的 QEMU；若不支援，改用 HMP 指令 `savevm` / `loadvm` 驗證概念即可。
-
-**記錄**：存檔時間、`state.bin` 大小、恢復時間、軟體恢復後能否直接繼續使用儀器。
-
----
-
-## 7. 回報表
-
-請把結果填入下表（也回答 [`DESIGN.md`](DESIGN.md) 第 13 節的問題），據此決定 Phase 1 的範圍：
-
-| 項目 | 結果 |
+| 情況 | 處理 |
 |---|---|
-| 加速方式（WHPX / TCG） | |
-| 冷開機到可操作時間 | |
-| 每台 USB 儀器：XP 是否辨識、軟體是否能控制 | |
-| 是否有韌體重新列舉（前後 VID:PID） | |
-| （選用）usb-host vs. usbredir 同一操作耗時 | |
-| 原 XP 電腦同一操作耗時（基準） | |
-| 每台 COM 儀器：是否正常、是否執行中改鮑率、是否用硬體握手 | |
-| 休眠存檔時間 / 檔案大小 / 恢復時間 | |
-| 恢復後儀器是否需重新連線 | |
-| 遇到的錯誤訊息或截圖 | |
+| 第 4 項有新的 VID:PID | 寫入 `profiles/ihr320.json` 的 `followReenumeration`，程式就會自動接手 |
+| 第 9 或 10 項恢復後軟體無法使用儀器 | iHR320 設定檔預設改為「正常關機」，或加入恢復後重新初始化的處理 |
+| 第 6 項明顯比舊電腦慢 | 檢查是否為軟體模擬；USB 端再做效能分析 |
+| UsbDk 無法安裝或無法轉送 | 改用 WinUSB 驅動方案（設計文件風險表） |

@@ -1,0 +1,10 @@
+bin/
+obj/
+out/
+dist/
+*.user
+.vs/
+TestResults/
+# 執行時產生的資料（XP 映像、休眠檔、紀錄）
+/vm/
+/logs/

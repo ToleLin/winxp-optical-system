@@ -1,0 +1,14 @@
+﻿XP 光學系統 — 第三方元件
+
+XP 光學系統本身以 MIT License 授權（Copyright (c) 2026 ToleLin），全文見 LICENSE.txt。
+
+XPOptical.exe 內含：
+- .NET 執行環境與 WPF（MIT License）— https://github.com/dotnet/runtime 、https://github.com/dotnet/wpf
+- DiscUtils.Iso9660（MIT License）— https://github.com/DiscUtils/DiscUtils
+
+drivers 資料夾：
+- UsbDk（Apache License 2.0）— https://github.com/daynix/UsbDk ，授權全文見 drivers\UsbDk-LICENSE.txt
+
+engine 資料夾：
+- QEMU、usbredir、libusb 等（GPL / LGPL 等），清單與原始碼取得方式見 engine\THIRD-PARTY-NOTICES.txt，
+  授權全文見 engine\licenses。

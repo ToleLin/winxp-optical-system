@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "profileName": "HORIBA iHR320 分光儀",
+  "vm": {
+    "ramMB": 512,
+    "closeAction": "hibernate"
+  },
+  "usb": [
+    {
+      "name": "iHR320",
+      "match": [{ "vid": "", "pid": "" }],
+      "followReenumeration": [],
+      "autoAttach": true
+    }
+  ]
+}

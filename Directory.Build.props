@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>0.2.1</Version>
+    <Company>WinXP Optical System</Company>
+    <Product>XP 光學系統</Product>
+  </PropertyGroup>
+</Project>
