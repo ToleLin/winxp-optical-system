@@ -15,6 +15,8 @@ DIR=$2
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 VERSION=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$ROOT/Directory.Build.props")
 
+# 標籤會寫進說明裡的下載網址，只允許英數字、點與連字號
+[[ "$TAG" =~ ^v[0-9A-Za-z.-]+$ ]] || { echo "標籤格式不正確：$TAG（例如 v$VERSION）" >&2; exit 1; }
 case "$TAG" in
   "v$VERSION") PRERELEASE=() ;;
   "v$VERSION"-*) PRERELEASE=(--prerelease) ;;
@@ -39,14 +41,19 @@ python3 "$ROOT/tools/fetch-engine-sources.py" "$DIR/XPOptical/engine/engine-mani
 (cd "$DIR" && sha256sum "$SETUP" "$ZIP" "$SOURCES" > SHA256SUMS.txt)
 FILES=("$DIR/$SETUP" "$DIR/$ZIP" "$DIR/$SOURCES" "$DIR/SHA256SUMS.txt")
 
+# 說明：packaging/release-notes.md，後面接上 GitHub 自動整理的變更清單（合併的 PR）
 NOTES=$(mktemp)
-sed "s/{VERSION}/$VERSION/g" "$ROOT/packaging/release-notes.md" > "$NOTES"
+sed -e "s/{VERSION}/$VERSION/g" -e "s/{TAG}/$TAG/g" "$ROOT/packaging/release-notes.md" > "$NOTES"
+printf '\n' >> "$NOTES"
+gh api "repos/{owner}/{repo}/releases/generate-notes" -f tag_name="$TAG" -f target_commitish="$TARGET" \
+  --jq .body >> "$NOTES"
 
 if gh release view "$TAG" >/dev/null 2>&1; then
-  # 重新執行時只更新檔案，保留已發佈的說明
+  # 重新執行：更新檔案與說明
   gh release upload "$TAG" "${FILES[@]}" --clobber
+  gh release edit "$TAG" --title "XP 光學系統 $VERSION" --notes-file "$NOTES"
 else
   gh release create "$TAG" "${FILES[@]}" --target "$TARGET" --title "XP 光學系統 $VERSION" \
-    --notes-file "$NOTES" --generate-notes "${PRERELEASE[@]}"
+    --notes-file "$NOTES" "${PRERELEASE[@]}"
 fi
 echo "已發佈：$TAG"
