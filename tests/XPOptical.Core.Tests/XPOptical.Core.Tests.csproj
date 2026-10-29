@@ -18,4 +18,21 @@
   <ItemGroup>
     <None Include="..\..\profiles\ihr320.json" Link="profiles\ihr320.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- 假 usbredirect：先建置，再把它的輸出（usbredirect 執行檔、dll、runtimeconfig）複製到 fake-usbredirect\ -->
+  <ItemGroup>
+    <ProjectReference Include="..\FakeUsbRedirect\FakeUsbRedirect.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyFakeUsbRedirect" AfterTargets="Build">
+    <MSBuild Projects="..\FakeUsbRedirect\FakeUsbRedirect.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_FakeUsbRedirectDll" />
+    </MSBuild>
+    <PropertyGroup>
+      <_FakeUsbRedirectDir>@(_FakeUsbRedirectDll->'%(RootDir)%(Directory)')</_FakeUsbRedirectDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_FakeUsbRedirectFiles Include="$(_FakeUsbRedirectDir)usbredirect*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_FakeUsbRedirectFiles)" DestinationFolder="$(OutDir)fake-usbredirect" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

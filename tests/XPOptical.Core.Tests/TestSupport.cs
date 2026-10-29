@@ -31,7 +31,7 @@ public sealed class FakeUsbEnumerator : IUsbEnumerator
 
 public static class QemuTest
 {
-    /// <summary>測試環境是否有 qemu-system-i386 與 qemu-img（雲端開發環境有安裝）。</summary>
+    /// <summary>測試環境是否有 QEMU（qemu-system-x86_64 或 i386）與 qemu-img（從 PATH 尋找）。</summary>
     public static bool Available { get; } = EngineLocator.Find("/nonexistent") is not null;
 
     public static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout, string what)

@@ -45,7 +45,8 @@ public sealed class VmController : IAsyncDisposable
     public QmpClient? Qmp => _qmp;
     public int VncPort { get; private set; }
     public VmLaunchSpec? CurrentSpec => _spec;
-    public bool SoftwareEmulation => _process?.FellBackToSoftwareEmulation ?? false;
+    public bool SoftwareEmulation =>
+        _process is not null && (_spec?.Accelerators.FirstOrDefault() == "tcg" || _process.FellBackToSoftwareEmulation);
 
     public async Task<VmStartResult> StartAsync(VmLaunchSpec spec, bool allowResume, CancellationToken ct = default)
     {

@@ -66,10 +66,10 @@ ln -sf /opt/dotnet/dotnet /usr/local/bin/dotnet
 | 項目 | 需求 |
 |---|---|
 | 作業系統 | Windows 10 或 11（64 位元） |
-| CPU | 支援並已在 BIOS 開啟硬體虛擬化（Intel VT-x / AMD-V） |
+| CPU | 不需要硬體虛擬化（XP 以 TCG 軟體模擬執行） |
 | 記憶體 | 8 GB 以上（XP 只用 512 MB） |
 | 磁碟 | 可用空間 10 GB 以上，建議 SSD |
-| Windows 功能 | Windows Hypervisor Platform（程式內可一鍵啟用） |
+| Windows 功能 | 不需要（不用開 Hyper-V / Hypervisor Platform） |
 | 權限 | 安裝 UsbDk 時需要一次系統管理員權限 |
 | 儀器 | iHR320 + USB 線 |
 | 其他 | XP 零售版安裝光碟（ISO）與序號；光學軟體與 iHR320 驅動安裝檔 |

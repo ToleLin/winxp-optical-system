@@ -15,8 +15,12 @@ public sealed record VmLaunchSpec
     public string? CdromImage { get; init; }
     public bool BootFromCdrom { get; init; }
 
+    /// <summary>
+    /// Windows 上只用軟體模擬：QEMU 的 WHPX 不支援休眠（缺少 dirty memory tracking，migrate 直接被擋），
+    /// 而「關閉時休眠」是必要功能。
+    /// </summary>
     public static IReadOnlyList<string> DefaultAccelerators { get; } =
-        OperatingSystem.IsWindows() ? ["whpx", "tcg"] : ["kvm", "tcg"];
+        OperatingSystem.IsWindows() ? ["tcg"] : ["kvm", "tcg"];
 }
 
 /// <summary>每次啟動都可能不同、不影響休眠相容性的連線端點。</summary>

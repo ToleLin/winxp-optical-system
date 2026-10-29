@@ -35,7 +35,7 @@
 | iHR320 自動接入 XP（插拔、斷電後自動重新接入），連線失敗時顯示中文原因 | ✅ |
 | 「放入檔案」：把資料夾或檔案做成光碟放進 XP（也可直接拖進視窗） | ✅ |
 | 把隨身碟等其他 USB 裝置接進 XP（拿出量測資料用） | ✅ |
-| 一鍵安裝 USB 驅動（UsbDk）、一鍵啟用硬體加速（Hypervisor Platform） | ✅ |
+| 一鍵安裝 USB 驅動（UsbDk）；不需開啟 Hyper-V / Hypervisor Platform | ✅ |
 | 資料夾路徑含中文時自動處理 | ✅ |
 | 一鍵產生問題回報（紀錄檔 + 環境資訊 zip） | ✅ |
 | XP 無人值守自動安裝、量測資料自動同步、還原點 | 下一階段 |
@@ -48,6 +48,7 @@ src/XPOptical.App/         Windows 主程式（WPF，繁體中文）
 tests/XPOptical.Core.Tests 單元測試 + 以真實 QEMU 執行的整合測試
 tools/build-engine.py      從 MSYS2 組裝 Windows 版執行引擎（只取實際用到的 DLL）
 tools/package.sh           產生免安裝版資料夾與 zip
+tools/package.ps1          同上（Windows 版）
 tools/test-windows-engine.sh  用 Wine 對隨附的 Windows 版引擎跑整合測試
 profiles/ihr320.json       iHR320 裝置設定檔
 packaging/                 使用說明與第三方授權說明
@@ -56,11 +57,12 @@ docs/                      設計文件、實機驗證步驟、開發環境
 
 ## 開發
 
-需要 Microsoft 官方 .NET 10 SDK（Ubuntu 套件版的 dotnet 不含 WPF 編譯支援）、python3、zstd；整合測試需要 `qemu-system-i386`。
+需要 Microsoft 官方 .NET 10 SDK（Ubuntu 套件版的 dotnet 不含 WPF 編譯支援）、python3、zstd；整合測試需要 `qemu-system-x86_64`（或 i386）與 `qemu-img`。
 
 ```bash
 dotnet test tests/XPOptical.Core.Tests    # 單元 + 整合測試
 ./tools/package.sh                         # 產生 dist/XPOptical 與 zip
+powershell -ExecutionPolicy Bypass -File tools\package.ps1   # 在 Windows 上產生同樣的免安裝版
 ./tools/test-windows-engine.sh             # （選用，需 wine64）測試隨附的 Windows 版引擎
 ```
 

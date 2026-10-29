@@ -2,7 +2,7 @@
 """
 組裝 Windows 用的執行引擎（engine 資料夾）：
 
-  engine/bin/          qemu-system-i386.exe、qemu-img.exe、usbredirect.exe 與它們需要的 DLL
+  engine/bin/          qemu-system-x86_64.exe、qemu-img.exe、usbredirect.exe 與它們需要的 DLL
   engine/share/qemu/   x86 開機韌體與鍵盤配置檔
   engine/licenses/     各套件的授權文件
   engine/THIRD-PARTY-NOTICES.txt
@@ -12,7 +12,7 @@
 找不到套件、也不是 Windows 內建的 DLL 會讓建置失敗，避免使用者電腦上缺檔。
 
 用法：python3 tools/build-engine.py --out dist/XPOptical/engine [--cache ~/.cache/xpoptical]
-需要：zstd 指令。
+需要：zstd 指令，或 Python 3.14 以上（標準函式庫內建 zstd）。
 """
 import argparse
 import fnmatch
@@ -29,7 +29,7 @@ from pathlib import Path
 
 REPO = "https://repo.msys2.org/mingw/ucrt64"
 PREFIX = "ucrt64/"
-ENTRY_POINTS = ["bin/qemu-system-i386.exe", "bin/qemu-img.exe", "bin/usbredirect.exe"]
+ENTRY_POINTS = ["bin/qemu-system-x86_64.exe", "bin/qemu-img.exe", "bin/usbredirect.exe"]
 FIRMWARE_PATTERNS = [
     "bios.bin", "bios-256k.bin", "vgabios-cirrus.bin", "vgabios-stdvga.bin", "kvmvapic.bin",
     "linuxboot.bin", "linuxboot_dma.bin", "multiboot.bin", "multiboot_dma.bin", "pvh.bin",
@@ -81,7 +81,12 @@ def file_sha256(path: Path):
 
 
 def zstd_tar(path: Path):
-    data = subprocess.run(["zstd", "-dc", str(path)], check=True, capture_output=True).stdout
+    if shutil.which("zstd"):
+        data = subprocess.run(["zstd", "-dc", str(path)], check=True, capture_output=True).stdout
+    else:
+        # Windows 通常沒有 zstd 指令；Python 3.14 起標準函式庫內建 zstd
+        from compression import zstd
+        data = zstd.decompress(path.read_bytes())
     return tarfile.open(fileobj=io.BytesIO(data), mode="r:")
 
 

@@ -55,7 +55,7 @@ public sealed class QemuProcess : IDisposable
         get { lock (_stderr) return _stderr.ToList(); }
     }
 
-    /// <summary>硬體加速失敗、改用軟體模擬時 QEMU 會輸出 "falling back to tcg"。</summary>
+    /// <summary>硬體加速失敗、改用軟體模擬時 QEMU 會輸出 "falling back to tcg"（一開始就指定 tcg 時不會輸出）。</summary>
     public bool FellBackToSoftwareEmulation =>
         StandardError.Any(l => l.Contains("falling back to tcg", StringComparison.OrdinalIgnoreCase));
 

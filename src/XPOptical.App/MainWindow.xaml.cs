@@ -113,16 +113,14 @@ public partial class MainWindow : Window
     {
         string? fix = null;
         if (_usbDkMissing && OperatingSystem.IsWindows()) fix = "安裝 USB 驅動";
-        else if (running && _app.Vm!.SoftwareEmulation) fix = "啟用硬體加速";
 
-        AccelText.Text = running ? (_app.Vm!.SoftwareEmulation ? "軟體模擬（較慢）" : "硬體加速") : "";
+        AccelText.Text = running ? (_app.Vm!.SoftwareEmulation ? "軟體模擬" : "硬體加速") : "";
         AccelSeparator.Visibility = Show(running);
         FixButton.Content = fix;
         FixButton.Visibility = Show(fix is not null);
         FixButton.ToolTip = fix switch
         {
             "安裝 USB 驅動" => "第一次使用需要安裝 UsbDk，iHR320 才能連到 XP（需要系統管理員權限，只需一次）",
-            "啟用硬體加速" => "啟用 Windows Hypervisor Platform 讓 XP 跑得更快（需要系統管理員權限並重新開機）",
             _ => null,
         };
     }
@@ -458,10 +456,6 @@ public partial class MainWindow : Window
                 Info(_usbDkMissing ? "USB 驅動安裝未完成，請再試一次。" : "USB 驅動安裝完成。");
                 _app.NotifyDevicesChanged();
             }
-        }
-        else if (await WindowsSetup.EnableHypervisorPlatformAsync())
-        {
-            Info("已啟用硬體加速。請重新開機 Windows 後生效。");
         }
         RefreshUi();
     }

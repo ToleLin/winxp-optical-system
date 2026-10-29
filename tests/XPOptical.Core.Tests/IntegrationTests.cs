@@ -54,24 +54,13 @@ public sealed class IntegrationTests : IDisposable
     {
         var bin = Path.Combine(_dir.Path, "engine", "bin");
         Directory.CreateDirectory(bin);
-        var fake = Path.Combine(bin, "usbredirect");
-        File.WriteAllText(fake, $$"""
-            #!/usr/bin/env python3
-            import os, socket, sys, time
-            ctl = {{JsonSerializer.Serialize(_control)}}
-            args = sys.argv[1:]
-            device = args[args.index("--device") + 1]
-            host, port = args[args.index("--to") + 1].rsplit(":", 1)
-            if os.path.exists(os.path.join(ctl, "fail")):
-                print("Failed to open device!", file=sys.stderr, flush=True)
-                sys.exit(1)
-            s = socket.create_connection((host, int(port)))
-            with open(os.path.join(ctl, "connections.log"), "a") as f:
-                f.write(device + "\n")
-            while os.path.exists(os.path.join(ctl, "present")):
-                time.sleep(0.05)
-            """);
-        File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        // 假 usbredirect 是 tests/FakeUsbRedirect 建置出來的同名執行檔，控制資料夾寫在旁邊的 usbredirect.ctl
+        foreach (var file in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "fake-usbredirect")))
+            File.Copy(file, Path.Combine(bin, Path.GetFileName(file)));
+        File.WriteAllText(Path.Combine(bin, "usbredirect.ctl"), _control);
+        var fake = Path.Combine(bin, OperatingSystem.IsWindows() ? "usbredirect.exe" : "usbredirect");
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
         new AppSettings
         {
@@ -111,7 +100,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task FullLifecycle()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         File.WriteAllText(Present, "");
         _usb.Set(FakeIhr320);
@@ -195,7 +184,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task InsertFolderAndIsoIntoXpCdrom()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         await app.StartAsync();
 
@@ -227,7 +216,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task ChangingRamDiscardsSavedState()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         await app.StartAsync();
         await app.CloseAsync();
@@ -244,7 +233,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task UncheckingDeviceInSettingsReturnsItToWindows()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         File.WriteAllText(Present, "");
         _usb.Set(FakeIhr320);
@@ -264,7 +253,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task UsbOpenFailureIsReportedInChineseAndRetried()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         File.WriteAllText(Fail, "");
         File.WriteAllText(Present, "");
@@ -284,7 +273,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task GuestInitiatedExitIsReported()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp();
         var exited = new TaskCompletionSource<int>();
         app.EngineExited += code => exited.TrySetResult(code);
@@ -301,7 +290,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task InstallFromIsoThenComplete()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp(installed: false);
         var iso = Path.Combine(_dir.Path, "xp,安裝光碟.iso");
         File.WriteAllBytes(iso, new byte[1024 * 1024]);
@@ -329,7 +318,7 @@ public sealed class IntegrationTests : IDisposable
     [SkippableFact]
     public async Task ImportExistingImageReportsProgress()
     {
-        Skip.IfNot(QemuTest.Available, "需要 qemu-system-i386");
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
         await using var app = CreateApp(installed: false);
         var source = Path.Combine(_dir.Path, "舊電腦硬碟.img");
         await using (var f = File.Create(source)) f.SetLength(32 * 1024 * 1024);

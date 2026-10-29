@@ -10,7 +10,7 @@ WRAP=$(mktemp -d)
 export WINEPREFIX="${WINEPREFIX:-$HOME/.cache/xpoptical/wineprefix}" WINEDEBUG=-all
 trap 'rm -rf "$WRAP"' EXIT
 
-for tool in qemu-system-i386 qemu-img; do
+for tool in qemu-system-x86_64 qemu-img; do
   cat > "$WRAP/$tool" <<WRAPPER
 #!/bin/bash
 exec "$WINE" "$ENGINE/bin/$tool.exe" "\$@"
@@ -18,5 +18,5 @@ WRAPPER
   chmod +x "$WRAP/$tool"
 done
 
-"$WRAP/qemu-system-i386" --version | head -1
+"$WRAP/qemu-system-x86_64" --version | head -1
 PATH="$WRAP:$PATH" dotnet test "$ROOT/tests/XPOptical.Core.Tests" --filter "FullyQualifiedName~IntegrationTests"

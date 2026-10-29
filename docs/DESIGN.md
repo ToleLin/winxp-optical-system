@@ -58,7 +58,7 @@ flowchart LR
   subgraph Host["Windows 10/11"]
     UI["XPOptical.exe<br/>繁體中文主程式<br/>（內嵌 XP 畫面）"]
     REDIR["usbredirect.exe<br/>事件驅動 USB 轉送<br/>（UsbDk）"]
-    QEMU["qemu-system-i386<br/>WHPX 加速 / TCG 備援"]
+    QEMU["qemu-system-x86_64<br/>TCG 軟體模擬"]
     STORE[("vm 資料夾<br/>base + overlay + 休眠檔")]
     DATA[("data 資料夾<br/>量測資料")]
     IHR["iHR320<br/>（USB）"]
@@ -83,7 +83,7 @@ flowchart LR
 | 元件 | 角色 | 技術 | 來源 |
 |---|---|---|---|
 | `XPOptical.exe` | 唯一需要雙擊的程式：精靈、XP 畫面、裝置狀態、休眠/還原 | C# .NET 8 WPF，**自帶執行環境的單一檔案** | 自行開發 |
-| VM 引擎 | 執行 XP | `qemu-system-i386.exe` + 必要 DLL | MSYS2 的 QEMU 套件（已內建 usb-redir 與 libusb） |
+| VM 引擎 | 執行 XP | `qemu-system-x86_64.exe` + 必要 DLL | MSYS2 的 QEMU 套件（已內建 usb-redir 與 libusb） |
 | USB 轉送 | 把 iHR320 以 usbredir 協定轉進 XP | `usbredirect.exe`（v1 直接使用）；v2 視需要改為自有模組 | MSYS2 的 usbredir 套件（v0.15.0 含 `usbredirect.exe`） |
 | USB 驅動 | 讓轉送程式取得裝置、用完自動歸還 Win11 | UsbDk | Red Hat 開源，已簽章 |
 | XP 代理程式 | 資料同步、時間校正、回報狀態 | C（MinGW，目標 XP） | 自行開發 |
@@ -113,10 +113,9 @@ XPOptical\
 └─ data\                ← 量測資料（從 XP 自動同步出來）
 ```
 
-整個資料夾可以複製到別台 Win10/11 電腦使用（第一次需要再安裝一次 UsbDk）。系統層級的變更只有兩項，都在首次使用精靈中以一次 UAC 授權完成：
+整個資料夾可以複製到別台 Win10/11 電腦使用（第一次需要再安裝一次 UsbDk）。系統層級的變更只有一項，在首次使用時以一次 UAC 授權完成：安裝 UsbDk 驅動。
 
-1. 安裝 UsbDk 驅動
-2. 啟用「Windows Hypervisor Platform」（建議，讓 XP 跑得快；不啟用也能用，只是較慢）
+不需要開啟 Hyper-V 或 Windows Hypervisor Platform：QEMU 的 WHPX 不支援休眠（migrate 會被擋：缺少 dirty memory tracking），所以 Windows 上一律以 TCG 軟體模擬執行。Win11 實機（i5-8400）實測，x86_64 版引擎的 TCG 比 i386 版快約 30%。
 
 ---
 
@@ -126,7 +125,7 @@ XPOptical\
 
 | 步驟 | 使用者要做的事 | 程式自動做的事 |
 |---|---|---|
-| ① 環境檢查 | 按「下一步」，同意一次系統管理員授權 | 安裝 UsbDk、啟用 Hypervisor Platform（可能需重新開機） |
+| ① 環境檢查 | 按「下一步」，同意一次系統管理員授權 | 安裝 UsbDk |
 | ② 建立 XP | 選擇 XP 安裝光碟（ISO 檔或實體光碟）、輸入序號 | 產生磁碟映像與自動安裝設定檔，**無人值守安裝 XP**、安裝代理程式、套用精簡與最佳化設定（一次性，約數十分鐘，可離開） |
 | ③ 安裝光學軟體 | 把光學軟體/驅動安裝檔的資料夾**拖進視窗**，接上 iHR320，在 XP 裡照原本方式安裝 | 把資料夾即時轉成虛擬光碟放進 XP；偵測到 iHR320 自動接入 |
 | ④ 完成 | 按「完成」 | 把目前狀態封存為「出廠狀態」，之後可一鍵還原 |
@@ -290,11 +289,11 @@ XPOptical\
 | Windows 版 `usbredirect.exe` 可取得 | 確認 | MSYS2 `mingw-w64-ucrt-x86_64-usbredir`（0.15.0） |
 | 完整流程：冷開機、VNC 畫面、USB 接入/拔除/重新接入/取消勾選歸還、休眠、恢復、關機逾時、強制關閉、從 ISO 安裝、匯入映像、放入光碟 | 通過 | 自動化整合測試，分別以 Linux 版 QEMU 8.2 與**實際隨附的 Windows 版 QEMU 11.1.2（透過 Wine）**執行；USB 以假的 usbredirect 代替 |
 | 資料夾路徑含中文與空白 | 通過 | 整合測試的工作資料夾刻意含中文與空白 |
-| 隨附的 Windows 引擎 DLL 完整 | 通過 | 建置時解析所有 PE 匯入；Wine 實際啟動 qemu-system-i386、qemu-img、usbredirect |
+| 隨附的 Windows 引擎 DLL 完整 | 通過 | 建置時解析所有 PE 匯入；Wine 實際啟動 qemu-system-x86_64、qemu-img、usbredirect |
 | 繁中主程式畫面 | 首次使用畫面、XP 畫面內嵌、狀態列、設定視窗顯示正常；關閉自動休眠、再開恢復成功 | 在 Wine + 虛擬螢幕上執行 XPOptical.exe 並截圖 |
 | 從 Linux 編譯 XP 可執行檔（代理程式） | 可行：PE 版本 5.1，只匯入 XP 內建 DLL | 雲端 MinGW 實測 |
 
-尚未驗證（需要 Win11 實機 + iHR320，即 Phase 0）：真正 Windows 上的 WPF 與 WHPX、UsbDk 在 Win11 的相容性、iHR320 經 usbredir 的實際運作與速度、安裝了 XP 之後的休眠存檔時間。
+尚未驗證（需要 Win11 實機 + iHR320，即 Phase 0）：真正 Windows 上的 WPF、UsbDk 在 Win11 的相容性、iHR320 經 usbredir 的實際運作與速度、安裝了 XP 之後的休眠存檔時間。
 
 ### 12.1 實作中發現並修正的 Windows 問題
 
@@ -311,7 +310,7 @@ XPOptical\
 
 | 風險 | 因應 |
 |---|---|
-| WHPX 與 32 位元 XP 的相容性 | Phase 0 驗證；退回 TCG 軟體模擬（較慢但可用） |
+| TCG 軟體模擬跑 XP 與光學軟體的速度 | Phase 0 實測；WHPX 雖較快但不支援休眠，不採用 |
 | UsbDk 與 Win11 記憶體完整性（HVCI）或公司 IT 政策衝突 | 退回 WinUSB（libwdi 自動安裝）；Phase 0 驗證 |
 | UsbDk 一般使用者權限下能否存取裝置 | 若需要系統管理員權限，再加回 Windows 服務負責 USB |
 | iHR320 恢復後狀態不一致 | 預設移除/重新接入 USB；必要時改為正常關機 |
