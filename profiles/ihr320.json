@@ -3,30 +3,14 @@
   "profileName": "HORIBA iHR320 分光儀",
   "vm": {
     "ramMB": 512,
-    "closeAction": "hibernate",
-    "resumePolicy": "resume",
-    "restorePoints": 3,
-    "display": { "guestResolution": "1024x768", "scaling": "integer" }
+    "closeAction": "hibernate"
   },
   "usb": [
     {
       "name": "iHR320",
       "match": [{ "vid": "", "pid": "" }],
       "followReenumeration": [],
-      "autoAttach": true,
-      "onResume": "replug",
-      "returnToHost": true,
-      "capture": false
+      "autoAttach": true
     }
-  ],
-  "launch": {
-    "guestCommand": "",
-    "autoStart": false
-  },
-  "dataSync": {
-    "guestPath": "C:\\Data",
-    "hostPath": "data",
-    "direction": "guest-to-host"
-  },
-  "network": "isolated"
+  ]
 }
