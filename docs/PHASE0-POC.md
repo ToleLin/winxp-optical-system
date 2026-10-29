@@ -16,7 +16,7 @@
 | 項目 | 說明 |
 |---|---|
 | Win10/11 電腦 | 64 位元；可用空間 10 GB 以上（不需要硬體虛擬化或 Hyper-V） |
-| 程式 | 從 GitHub Actions 下載 `XPOptical-Setup`（單一安裝檔） |
+| 程式 | 從 [Releases 最新版](https://github.com/ToleLin/winxp-optical-system/releases/latest) 下載 `XPOptical-Setup-<版本>.exe`（單一安裝檔） |
 | XP 安裝光碟 | 零售版光碟做成的 ISO 檔（改名為 `xp.iso`，放在安裝檔旁邊）與產品序號 |
 | 光學軟體 | 光學軟體與 iHR320 驅動的安裝檔（放在一個資料夾） |
 | 儀器 | iHR320 + USB 線 |

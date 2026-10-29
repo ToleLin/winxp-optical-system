@@ -28,6 +28,7 @@ import urllib.request
 from pathlib import Path
 
 REPO = "https://repo.msys2.org/mingw/ucrt64"
+SOURCES = "https://repo.msys2.org/mingw/sources"
 PREFIX = "ucrt64/"
 ENTRY_POINTS = ["bin/qemu-system-x86_64.exe", "bin/qemu-img.exe", "bin/usbredirect.exe"]
 FIRMWARE_PATTERNS = [
@@ -110,6 +111,8 @@ def load_files_db(path: Path):
             "sha256": desc["SHA256SUM"][0],
             "license": desc.get("LICENSE", []),
             "url": desc.get("URL", [""])[0],
+            # 原始碼封存檔以 BASE（建置腳本名稱）命名，例如 mingw-w64-qemu-11.1.2-1.src.tar.zst
+            "base": desc.get("BASE", [name])[0],
             "files": files,
         }
     index = {}
@@ -282,7 +285,9 @@ def main():
         "",
         "engine 資料夾內的程式來自 MSYS2 專案（https://www.msys2.org/）的 UCRT64 套件，未經修改。",
         "各元件依其授權條款散布，授權文字位於 engine/licenses/。",
-        "原始碼可由 https://repo.msys2.org/mingw/sources/ 取得（檔名為「套件名稱-版本.src.tar.zst」），",
+        f"原始碼可由 {SOURCES}/ 取得（各套件的檔名見 engine-manifest.json 的 sourceArchive），",
+        "本程式每個版本的 GitHub Releases 頁面（https://github.com/ToleLin/winxp-optical-system/releases）",
+        "也附有同版本所有元件的原始碼封存檔（XPOptical-<版本>-engine-sources.tar）。",
         "建置腳本位於 https://github.com/msys2/MINGW-packages 。",
         "",
         f"{'套件':<48} {'版本':<20} 授權",
@@ -291,7 +296,8 @@ def main():
     for name in sorted(used_packages):
         pkg = packages[name]
         notices.append(f"{name:<48} {pkg['version']:<20} {' '.join(pkg['license'])}")
-        manifest[name] = {"version": pkg["version"], "sha256": pkg["sha256"]}
+        manifest[name] = {"version": pkg["version"], "sha256": pkg["sha256"],
+                          "sourceArchive": f"{pkg['base']}-{pkg['version']}.src.tar.zst"}
         lic_root = cache.path_of(name, "share/licenses")
         if lic_root.exists():
             for f in lic_root.rglob("*"):
@@ -302,6 +308,7 @@ def main():
     (out / "THIRD-PARTY-NOTICES.txt").write_text("\n".join(notices) + "\n", encoding="utf-8")
     (out / "engine-manifest.json").write_text(json.dumps({
         "source": REPO,
+        "sourceRepo": SOURCES,
         "packages": manifest,
         "systemDlls": sorted(system),
     }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
