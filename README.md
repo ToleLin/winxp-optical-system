@@ -10,6 +10,23 @@
 
 > 目前版本：**v0.2.1**。程式已在雲端與 Win11 實機完成自動化與介面測試；尚待真正的 XP + iHR320 驗證（見 [docs/PHASE0-POC.md](docs/PHASE0-POC.md)）。
 
+## 極簡安裝（3 步）
+
+下載：**[Releases 最新版](https://github.com/ToleLin/winxp-optical-system/releases/latest)** 的 `XPOptical-Setup-<版本>.exe`
+
+1. 把自己的 Windows XP 安裝光碟 ISO 檔改名為 `xp.iso`，和安裝檔放在同一個資料夾。
+2. 執行安裝檔，一路按「下一步」（USB 驅動會一併安裝）。若出現「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」。
+3. 程式自動開啟後輸入 XP 產品序號，按「開始自動安裝」。約 30–90 分鐘後自動進入 XP 桌面。
+
+之後把光學軟體的安裝檔資料夾拖進視窗，在 XP 裡安裝；按「設定」選擇 iHR320。關閉時直接按 ✕，下次開啟回到原本的畫面。
+
+需要：64 位元 Windows 10/11、10 GB 以上可用空間、自備的 Windows XP 安裝光碟（ISO）與產品序號。詳細操作見 [`使用說明.txt`](packaging/使用說明.txt)。
+
+其他取得方式：
+
+- **免安裝版**：同一個 Releases 頁面的 `XPOptical-<版本>-win-x64.zip`，解壓縮到 `C:\XPOptical` 後執行 `XPOptical.exe`。
+- **自行建置**：見下方「開發」。
+
 ## 畫面
 
 | 第一次使用 | XP 執行中（此為測試用空白磁碟的開機畫面） |
@@ -17,14 +34,6 @@
 | ![第一次使用](docs/images/first-run.png) | ![XP 執行中](docs/images/xp-running.png) |
 
 > 截圖來自雲端測試環境（Wine，字型為 Noto Sans CJK）；在 Windows 上會使用微軟正黑體。
-
-## 取得程式
-
-- **安裝檔（建議）**：GitHub 的 Actions 頁面 →「建置與測試」最新一次執行 → Artifacts 的 `XPOptical-Setup`，內含單一的 `XPOptical-Setup-<版本>.exe`（程式、執行引擎、USB 驅動全部包在一起）。把自己的 XP 安裝光碟改名為 `xp.iso` 放在旁邊再執行，安裝後只要輸入產品序號，XP 就會全自動安裝。
-- **免安裝版**：同一頁的 `XPOptical-win-x64`，解壓縮後整個資料夾即可使用。
-- **自行建置**：見下方「開發」。
-
-使用方式見免安裝版資料夾內的 [`使用說明.txt`](packaging/使用說明.txt)。
 
 ## 功能（v0.2.1）
 
@@ -52,6 +61,8 @@ tests/XPOptical.Core.Tests 單元測試 + 以真實 QEMU 執行的整合測試
 tools/build-engine.py      從 MSYS2 組裝 Windows 版執行引擎（只取實際用到的 DLL）
 tools/package.sh           產生安裝檔、免安裝版資料夾與 zip
 tools/package.ps1          同上（Windows 版）
+tools/publish-release.sh   發佈到 GitHub Releases（CI 在推送版本標籤時執行）
+tools/fetch-engine-sources.py  下載執行引擎各元件的原始碼，隨 Release 發佈
 tools/test-windows-engine.sh  用 Wine 對隨附的 Windows 版引擎跑整合測試
 profiles/ihr320.json       iHR320 裝置設定檔
 packaging/                 安裝檔腳本（NSIS）、使用說明與第三方授權說明
@@ -71,6 +82,13 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1   # 在 Windows 上�
 
 雲端開發環境的設定見 [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md)。
 
+### 發佈新版
+
+1. 修改 `Directory.Build.props` 的 `<Version>`，合併到 `main`。
+2. 在 `main` 上建立並推送版本標籤，例如 `git tag v0.2.2 && git push origin v0.2.2`。
+3. CI 建置、測試後自動發佈到 [Releases](https://github.com/ToleLin/winxp-optical-system/releases)：安裝檔、免安裝版、執行引擎原始碼與檢查碼；說明文字取自 `packaging/release-notes.md`。
+   標籤加後綴（例如 `v0.3.0-beta.1`）會發佈為預先發行版，不會成為「最新版」。
+
 ## 文件
 
 | 文件 | 內容 |
@@ -84,12 +102,13 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1   # 在 Windows 上�
 
 - 不支援 PCI/PCIe 介面卡直通（Windows 10/11 的限制）
 - 不附帶 Windows XP 與光學軟體，使用者須自備合法授權並自行安裝
-- v0.1 的量測資料需透過隨身碟拿出（自動同步在下一階段）
+- 目前版本的量測資料需透過隨身碟拿出（自動同步在下一階段）
 
 ## 授權
 
 本專案的程式碼以 [MIT License](LICENSE) 授權。
 
 免安裝版隨附的第三方元件依各自的授權散布（QEMU 等為 GPL/LGPL、UsbDk 為 Apache 2.0、.NET 與 DiscUtils 為 MIT），
-清單與授權全文見免安裝版內的 `THIRD-PARTY-NOTICES.txt`、`engine/THIRD-PARTY-NOTICES.txt`、`engine/licenses/`。
+清單與授權全文見免安裝版內的 `THIRD-PARTY-NOTICES.txt`、`engine/THIRD-PARTY-NOTICES.txt`、`engine/licenses/`；
+執行引擎各元件的原始碼附在每個版本的 Releases 頁面（`XPOptical-<版本>-engine-sources.tar`）。
 本專案不包含也不散布 Windows XP 或任何光學軟體。

@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -42,3 +45,38 @@ jobs:
           name: XPOptical-win-x64
           path: dist/XPOptical/
           retention-days: 30
+
+      - name: 上傳發佈用檔案（版本標籤）
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            dist/XPOptical-Setup-*.exe
+            dist/XPOptical-*-win-x64.zip
+            dist/XPOptical/engine/engine-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # 推送版本標籤（例如 v0.2.1）時，把安裝檔發佈到 GitHub Releases。
+  # 只有這個工作有寫入權限；建置與測試在上面唯讀的工作完成。
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: release
+
+      - name: 發佈到 Releases（含執行引擎原始碼）
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: ./tools/publish-release.sh "$GITHUB_REF_NAME" release
