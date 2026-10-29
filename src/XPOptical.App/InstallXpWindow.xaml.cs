@@ -37,8 +37,10 @@ public partial class InstallXpWindow : Window
         try
         {
             _info = XpIsoInfo.Inspect(path);
-            IsoInfo.Text = _info.IsXp ? $"偵測到：{_info.Description}" : "這不是 Windows XP 安裝光碟，請選擇其他檔案。";
-            IsoInfo.Foreground = _info.IsXp ? Brushes.ForestGreen : Brushes.OrangeRed;
+            IsoInfo.Text = !_info.IsXp ? "這不是 Windows XP 安裝光碟，請選擇其他檔案。"
+                : _info.Warning is { } warning ? $"偵測到：{_info.Description}\n{warning}"
+                : $"偵測到：{_info.Description}";
+            IsoInfo.Foreground = _info.IsXp && _info.Warning is null ? Brushes.ForestGreen : Brushes.OrangeRed;
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
         {

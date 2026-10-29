@@ -54,7 +54,8 @@ public class QemuCommandBuilderTests
         var args = QemuCommandBuilder.Build(Spec with { CdromImage = @"D:\iso\xp.iso", BootFromCdrom = true },
             new VmEndpoints(1, 5900));
         Assert.Equal(@"file=D:\iso\xp.iso,if=ide,index=2,media=cdrom,format=raw,id=cd0", Arg(args, "-drive", 1));
-        Assert.Equal("order=dc,menu=off", Arg(args, "-boot"));
+        // 硬碟優先：全新磁碟不能開機才用光碟，第一次重新開機後就從硬碟繼續安裝
+        Assert.Equal("order=cd,menu=off", Arg(args, "-boot"));
     }
 
     [Fact]
