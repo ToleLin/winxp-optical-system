@@ -1,6 +1,9 @@
+using System.IO;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using XPOptical.Core;
+using XPOptical.Core.Diagnostics;
 using XPOptical.Core.Profiles;
 using XPOptical.Core.Usb;
 using XPOptical.Core.Vm;
@@ -81,6 +84,23 @@ public partial class SettingsWindow : Window
     }
 
     private void OnRefreshClick(object sender, RoutedEventArgs e) => LoadDevices();
+
+    private void OnReportClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var zip = ProblemReport.Create(_app.Paths, desktop, WindowsDiagnostics.Collect(_app).ToList(),
+                _enumerator.GetPresentDevices());
+            MessageBox.Show(this, $"已在桌面建立問題回報：\n{Path.GetFileName(zip)}\n\n請把這個檔案傳給開發者。",
+                Title, MessageBoxButton.OK, MessageBoxImage.Information);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{zip}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"無法產生問題回報：\n{ex.Message}", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
 
     private void OnOkClick(object sender, RoutedEventArgs e)
     {

@@ -51,9 +51,13 @@
             </StackPanel>
         </GroupBox>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="確定" IsDefault="True" Padding="20,6" Margin="0,0,8,0" Click="OnOkClick" />
-            <Button Content="取消" IsCancel="True" Padding="20,6" />
-        </StackPanel>
+        <DockPanel>
+            <Button DockPanel.Dock="Left" Content="產生問題回報…" Padding="12,6" Click="OnReportClick"
+                    ToolTip="把紀錄檔與電腦環境資訊打包成 zip 放到桌面，傳給開發者協助排除問題" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="確定" IsDefault="True" Padding="20,6" Margin="0,0,8,0" Click="OnOkClick" />
+                <Button Content="取消" IsCancel="True" Padding="20,6" />
+            </StackPanel>
+        </DockPanel>
     </StackPanel>
 </Window>
