@@ -73,6 +73,7 @@ dotnet test tests/XPOptical.Core.Tests    # 單元 + 整合測試
 | [docs/DESIGN.md](docs/DESIGN.md) | 系統設計與實作狀態 |
 | [docs/PHASE0-POC.md](docs/PHASE0-POC.md) | Win11 實機 + iHR320 驗證步驟 |
 | [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) | 開發環境規格與設定腳本 |
+| [docs/LOCAL-TESTER.md](docs/LOCAL-TESTER.md) | 給本機測試端（Win11 + iHR320）的說明：取得新版、測試、回報 |
 
 ## 已知限制
 
