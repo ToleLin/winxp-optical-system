@@ -80,6 +80,7 @@ A：按「設定」→ 左下角「產生問題回報…」，桌面會出現一
 
 七、授權
 --------
+XP 光學系統以 MIT License 授權（見 LICENSE.txt）。
 本程式不附帶 Windows XP 與光學軟體，請使用合法授權的版本。
 隨附的第三方元件及其授權見 engine\THIRD-PARTY-NOTICES.txt、engine\licenses、drivers\UsbDk-LICENSE.txt
 與 THIRD-PARTY-NOTICES.txt。

@@ -79,3 +79,11 @@ dotnet test tests/XPOptical.Core.Tests    # 單元 + 整合測試
 - 不支援 PCI/PCIe 介面卡直通（Windows 10/11 的限制）
 - 不附帶 Windows XP 與光學軟體，使用者須自備合法授權並自行安裝
 - v0.1 的量測資料需透過隨身碟拿出（自動同步在下一階段）
+
+## 授權
+
+本專案的程式碼以 [MIT License](LICENSE) 授權。
+
+免安裝版隨附的第三方元件依各自的授權散布（QEMU 等為 GPL/LGPL、UsbDk 為 Apache 2.0、.NET 與 DiscUtils 為 MIT），
+清單與授權全文見免安裝版內的 `THIRD-PARTY-NOTICES.txt`、`engine/THIRD-PARTY-NOTICES.txt`、`engine/licenses/`。
+本專案不包含也不散布 Windows XP 或任何光學軟體。

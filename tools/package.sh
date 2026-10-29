@@ -33,6 +33,7 @@ curl -fsSL -o "$OUT/drivers/UsbDk-LICENSE.txt" "$USBDK_LICENSE_URL"
 echo "== 4/4 設定檔、說明與壓縮 =="
 cp "$ROOT/profiles/ihr320.json" "$OUT/profiles/"
 cp "$ROOT/packaging/使用說明.txt" "$ROOT/packaging/THIRD-PARTY-NOTICES.txt" "$OUT/"
+cp "$ROOT/LICENSE" "$OUT/LICENSE.txt"
 ZIP="$DIST/XPOptical-$VERSION-win-x64.zip"
 (cd "$DIST" && python3 -m zipfile -c "$(basename "$ZIP")" XPOptical)
 rm -rf "$DIST/publish"
