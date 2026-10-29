@@ -52,8 +52,9 @@ VIAddVersionKey /LANG=1028 "LegalCopyright" "Copyright (c) 2026 ToleLin, MIT Lic
 !endif
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TEXT "這會安裝 ${APPNAME} ${VERSION}，以及 iHR320 連到 XP 所需的 USB 驅動（UsbDk）。$\r$\n$\r$\n若要一併自動安裝 XP：請把自己的 XP 安裝光碟 ISO 檔改名為 xp.iso，放在這個安裝檔旁邊後再執行。$\r$\n$\r$\n按「下一步」繼續。"
-!define MUI_FINISHPAGE_RUN "$INSTDIR\XPOptical.exe"
+!define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "開啟 ${APPNAME}"
+!define MUI_FINISHPAGE_RUN_FUNCTION RunAsUser
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\使用說明.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "顯示使用說明"
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
@@ -74,15 +75,22 @@ Function .onInit
   SetRegView 64
 FunctionEnd
 
+; 安裝檔以系統管理員執行，直接 Exec 會讓主程式也變成系統管理員權限，
+; Windows 就不允許從檔案總管把檔案拖進視窗；改由 explorer.exe 以目前使用者身分開啟
+Function RunAsUser
+  Exec '"$WINDIR\explorer.exe" "$INSTDIR\XPOptical.exe"'
+FunctionEnd
+
 Section "主程式" SecMain
   SetOutPath "$INSTDIR"
-  File "${SRC}/XPOptical.exe"
-  File "${SRC}/使用說明.txt"
-  File "${SRC}/THIRD-PARTY-NOTICES.txt"
-  File "${SRC}/LICENSE.txt"
-  File /r "${SRC}/engine"
-  File /r "${SRC}/drivers"
-  File /r "${SRC}/profiles"
+  ; 路徑用反斜線：Windows 版 makensis 不認得「/」，Linux 版會自動把「\」轉成「/」
+  File "${SRC}\XPOptical.exe"
+  File "${SRC}\使用說明.txt"
+  File "${SRC}\THIRD-PARTY-NOTICES.txt"
+  File "${SRC}\LICENSE.txt"
+  File /r "${SRC}\engine"
+  File /r "${SRC}\drivers"
+  File /r "${SRC}\profiles"
 
   ; 一般使用者帳號也要能寫入（XP 磁碟、設定、紀錄都放在程式資料夾）。S-1-5-32-545 = Users 群組
   nsExec::ExecToLog 'icacls "$INSTDIR" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
