@@ -82,7 +82,7 @@ flowchart LR
 
 | 元件 | 角色 | 技術 | 來源 |
 |---|---|---|---|
-| `XPOptical.exe` | 唯一需要雙擊的程式：精靈、XP 畫面、裝置狀態、休眠/還原 | C# .NET 8 WPF，**自帶執行環境的單一檔案** | 自行開發 |
+| `XPOptical.exe` | 唯一需要雙擊的程式：精靈、XP 畫面、裝置狀態、休眠/還原 | C# .NET 10 WPF，**自帶執行環境的單一檔案** | 自行開發 |
 | VM 引擎 | 執行 XP | `qemu-system-x86_64.exe` + 必要 DLL | MSYS2 的 QEMU 套件（已內建 usb-redir 與 libusb） |
 | USB 轉送 | 把 iHR320 以 usbredir 協定轉進 XP | `usbredirect.exe`（v1 直接使用）；v2 視需要改為自有模組 | MSYS2 的 usbredir 套件（v0.15.0 含 `usbredirect.exe`） |
 | USB 驅動 | 讓轉送程式取得裝置、用完自動歸還 Win11 | UsbDk | Red Hat 開源，已簽章 |
@@ -293,7 +293,11 @@ XPOptical\
 | 繁中主程式畫面 | 首次使用畫面、XP 畫面內嵌、狀態列、設定視窗顯示正常；關閉自動休眠、再開恢復成功 | 在 Wine + 虛擬螢幕上執行 XPOptical.exe 並截圖 |
 | 從 Linux 編譯 XP 可執行檔（代理程式） | 可行：PE 版本 5.1，只匯入 XP 內建 DLL | 雲端 MinGW 實測 |
 
-尚未驗證（需要 Win11 實機 + iHR320，即 Phase 0）：真正 Windows 上的 WPF、UsbDk 在 Win11 的相容性、iHR320 經 usbredir 的實際運作與速度、安裝了 XP 之後的休眠存檔時間。
+| Win11 實機（本機測試端，i5-8400、Win11 Pro 26200） | `dotnet test` 48/48；主程式安裝模式、安裝完成、開啟、關閉休眠（0.6 秒）、再開恢復（0.2 秒）、問題回報按鈕皆正常（以 Alpine ISO 代替 XP 光碟） | 本機測試端回報 #1 |
+| WHPX 能否休眠 | 不能：QEMU 在 WHPX 下登錄遷移阻擋（`target/i386/whpx/whpx-all.c`：缺少 dirty memory tracking），所以 Windows 上一律使用 TCG | 本機實測 + 原始碼確認；MSYS2 的 i386 版甚至未編入 WHPX |
+| TCG 效能：x86_64 版 vs i386 版 | x86_64 版快約 30%（Alpine 開機 27.0 秒 vs 38.6 秒），改用 x86_64 版 | 本機實測 |
+
+尚未驗證（需要使用者本人在 Win11 實機上）：XP SP3 安裝、UsbDk 安裝與 iHR320 經 usbredir 的實際運作與速度、真正 XP 的休眠檔大小與存檔時間。
 
 ### 12.1 實作中發現並修正的 Windows 問題
 
@@ -310,7 +314,7 @@ XPOptical\
 
 | 風險 | 因應 |
 |---|---|
-| TCG 軟體模擬跑 XP 與光學軟體的速度 | Phase 0 實測；WHPX 雖較快但不支援休眠，不採用 |
+| TCG 軟體模擬跑 XP 與光學軟體的速度 | Phase 0 實測；WHPX 雖較快但不支援休眠，不採用。若實際操作太慢，可加一個選項「硬體加速（關閉時只能正常關機）」 |
 | UsbDk 與 Win11 記憶體完整性（HVCI）或公司 IT 政策衝突 | 退回 WinUSB（libwdi 自動安裝）；Phase 0 驗證 |
 | UsbDk 一般使用者權限下能否存取裝置 | 若需要系統管理員權限，再加回 Windows 服務負責 USB |
 | iHR320 恢復後狀態不一致 | 預設移除/重新接入 USB；必要時改為正常關機 |

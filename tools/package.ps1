@@ -42,6 +42,7 @@ Invoke-WebRequest -UseBasicParsing -Uri $UsbDkLicenseUrl -OutFile "$Out\drivers\
 Write-Host '== 4/4 設定檔、說明與壓縮 =='
 Copy-Item "$Root\profiles\ihr320.json" "$Out\profiles\"
 Copy-Item "$Root\packaging\使用說明.txt", "$Root\packaging\THIRD-PARTY-NOTICES.txt" $Out
+Copy-Item "$Root\LICENSE" "$Out\LICENSE.txt"
 $Zip = Join-Path $Dist "XPOptical-$Version-win-x64.zip"
 Invoke-Checked $Python @('-m', 'zipfile', '-c', $Zip, $Out)
 Remove-Item -Recurse -Force "$Dist\publish"

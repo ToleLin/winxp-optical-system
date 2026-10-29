@@ -53,8 +53,8 @@ ln -sf /opt/dotnet/dotnet /usr/local/bin/dotnet
 | Ubuntu 套件 `dotnet-sdk-8.0` 編譯 WPF | ❌ 缺少 `Microsoft.NET.Sdk.WindowsDesktop` |
 | Microsoft 官方 .NET 10 SDK（10.0.403）編譯 WPF，`win-x64` 自帶執行環境單一檔案 | ✅ 約 62 MB 的 `XPOptical.exe` |
 | `tools/build-engine.py` 組裝 Windows 引擎 | ✅ 109 個檔案、87 個 MSYS2 套件、135 MB；所有 DLL 皆已打包或為 Windows 內建 |
-| `dotnet test`（Linux 版 QEMU 8.2） | ✅ 43 項 |
-| `tools/test-windows-engine.sh`（Windows 版 QEMU 11.1.2，透過 Wine） | ✅ 8 項整合測試 |
+| `dotnet test`（Linux 版 QEMU 8.2，qemu-system-x86_64） | ✅ 48 項 |
+| `tools/test-windows-engine.sh`（Windows 版 qemu-system-x86_64 11.1.2，透過 Wine） | ✅ 8 項整合測試 |
 | 主程式在 Wine + Xvfb 執行 | ✅ 中文介面、XP 畫面內嵌、關閉休眠、再開恢復 |
 
 > 在 Wine 中執行主程式需要把中文字型登錄到 Wine 的 `C:\windows\Fonts`；真正的 Windows 有微軟正黑體，不需要這一步。
