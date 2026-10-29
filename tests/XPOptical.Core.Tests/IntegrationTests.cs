@@ -316,6 +316,55 @@ public sealed class IntegrationTests : IDisposable
     }
 
     [SkippableFact]
+    public async Task UnattendedInstallCompletesWhenXpPowersOff()
+    {
+        Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");
+        await using var app = CreateApp(installed: false);
+        var iso = await UnattendedSetupTests.FakeXpIsoAsync(_dir.Path, "WIN51", "WIN51IP", "WIN51IP.SP3");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => app.StartUnattendedInstallAsync(iso, "12345"));
+        var notXp = await UnattendedSetupTests.FakeXpIsoAsync(_dir.Path, "README.TXT");
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => app.StartUnattendedInstallAsync(notXp, UnattendedSetupTests.TestKey));
+
+        await app.StartUnattendedInstallAsync(iso, UnattendedSetupTests.TestKey);
+        Assert.True(app.InstallMode);
+        Assert.True(app.UnattendedInstall);
+
+        // 磁碟片接在 A:，內容是含序號的自動安裝設定
+        var blocks = await app.Vm!.Qmp!.ExecuteAsync("query-block");
+        var floppy = blocks.EnumerateArray().Single(b => b.GetProperty("device").GetString() == "floppy0");
+        Assert.Equal("setup-floppy.img", Path.GetFileName(floppy.GetProperty("inserted").GetProperty("file").GetString()));
+
+        // 引擎在完成標記出現前結束（例如使用者關掉）：不算完成
+        var exited = new TaskCompletionSource();
+        app.EngineExited += _ => exited.TrySetResult();
+        try { await app.Vm.Qmp.ExecuteAsync("quit"); } catch (IOException) { }
+        await exited.Task.WaitAsync(Wait);
+        await QemuTest.WaitUntilAsync(() => app.VmState == VmState.Stopped, Wait, "停止");
+        Assert.False(app.TryCompleteUnattendedInstall());
+        Assert.True(app.HasUnfinishedInstall);
+
+        // 繼續安裝：磁碟片重新接上；XP 的安裝後腳本寫入完成標記並關機
+        await app.StartInstallAsync(iso, freshDisk: false);
+        Assert.True(app.UnattendedInstall);
+        UnattendedSetupTests.MarkDone(app.Store.SetupFloppy);
+        exited = new TaskCompletionSource();
+        try { await app.Vm!.Qmp!.ExecuteAsync("quit"); } catch (IOException) { }
+        await exited.Task.WaitAsync(Wait);
+        await QemuTest.WaitUntilAsync(() => app.VmState == VmState.Stopped, Wait, "停止");
+
+        Assert.True(app.TryCompleteUnattendedInstall());
+        Assert.True(app.Store.IsInstalled);
+        Assert.False(app.InstallMode);
+        Assert.False(File.Exists(app.Store.SetupFloppy)); // 含產品序號，完成後刪除
+
+        var started = await app.StartAsync();
+        Assert.False(started.Resumed);
+        await app.PowerOffAsync();
+    }
+
+    [SkippableFact]
     public async Task ImportExistingImageReportsProgress()
     {
         Skip.IfNot(QemuTest.Available, "需要 QEMU 執行引擎");

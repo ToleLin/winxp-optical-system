@@ -71,10 +71,15 @@
                     <TextBlock Style="{StaticResource Hint}" FontSize="15" Margin="0,0,0,20"
                                Text="第一次使用，請先建立 XP 環境（只需要做一次）。" />
 
-                    <Button x:Name="InstallButton" Style="{StaticResource BigButton}" Content="從 XP 安裝光碟安裝…"
+                    <Button x:Name="AutoInstallButton" Style="{StaticResource BigButton}" Content="自動安裝 XP（建議）…"
+                            Click="OnAutoInstallClick" FontWeight="SemiBold" />
+                    <TextBlock x:Name="AutoInstallHint" Style="{StaticResource Hint}" Margin="0,0,0,16"
+                               Text="選擇 XP 安裝光碟（ISO 檔）並輸入產品序號，其餘全部自動完成。" />
+
+                    <Button x:Name="InstallButton" Style="{StaticResource BigButton}" Content="手動安裝 XP…"
                             Click="OnInstallClick" />
                     <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,16"
-                               Text="需要 Windows XP 安裝光碟的 ISO 檔與產品序號。XP 安裝畫面會出現在這個視窗裡，照著畫面操作即可；安裝完成後按工具列的「XP 安裝完成」。" />
+                               Text="照著 XP 原本的安裝畫面自己操作（進階）。安裝完成後按工具列的「XP 安裝完成」。" />
 
                     <Button x:Name="ContinueInstallButton" Style="{StaticResource BigButton}"
                             Content="繼續先前未完成的安裝…" Click="OnContinueInstallClick" Visibility="Collapsed" />

@@ -291,6 +291,7 @@ public sealed class VmController : IAsyncDisposable
     {
         SystemDisk = SafePath.MakeSafe(spec.SystemDisk, _store.VmDir),
         CdromImage = spec.CdromImage is null ? null : SafePath.MakeSafe(spec.CdromImage, _store.VmDir),
+        FloppyImage = spec.FloppyImage is null ? null : SafePath.MakeSafe(spec.FloppyImage, _store.VmDir),
         FirmwareDir = spec.FirmwareDir is null ? null : SafePath.MakeSafe(spec.FirmwareDir, _store.VmDir),
     };
 

@@ -8,7 +8,7 @@
 - **像關機一樣保存**：關閉時快速休眠，下次數秒內回到原畫面
 - **安全隔離**：XP 不連網；檔案以唯讀光碟放進 XP
 
-> 目前版本：**v0.1.0**。程式已可在雲端完整建置與測試；尚待 Win11 實機 + iHR320 驗證（見 [docs/PHASE0-POC.md](docs/PHASE0-POC.md)）。
+> 目前版本：**v0.2.0**。程式已在雲端與 Win11 實機完成自動化與介面測試；尚待真正的 XP + iHR320 驗證（見 [docs/PHASE0-POC.md](docs/PHASE0-POC.md)）。
 
 ## 畫面
 
@@ -20,17 +20,20 @@
 
 ## 取得程式
 
-- **下載**：GitHub 的 Actions 頁面 →「建置與測試」最新一次執行 → Artifacts 的 `XPOptical-win-x64`。解壓縮後整個資料夾就是免安裝版。
+- **安裝檔（建議）**：GitHub 的 Actions 頁面 →「建置與測試」最新一次執行 → Artifacts 的 `XPOptical-Setup`，內含單一的 `XPOptical-Setup-<版本>.exe`（程式、執行引擎、USB 驅動全部包在一起）。把自己的 XP 安裝光碟改名為 `xp.iso` 放在旁邊再執行，安裝後只要輸入產品序號，XP 就會全自動安裝。
+- **免安裝版**：同一頁的 `XPOptical-win-x64`，解壓縮後整個資料夾即可使用。
 - **自行建置**：見下方「開發」。
 
 使用方式見免安裝版資料夾內的 [`使用說明.txt`](packaging/使用說明.txt)。
 
-## 功能（v0.1.0）
+## 功能（v0.2.0）
 
 | 功能 | 狀態 |
 |---|---|
 | XP 畫面內嵌在繁中主視窗（整數倍縮放、掃描碼鍵盤、絕對座標滑鼠、Ctrl+Alt+Del 按鈕） | ✅ |
-| 從 XP 安裝光碟（ISO）安裝 XP、繼續未完成的安裝、匯入現有磁碟映像 | ✅ |
+| 單一安裝檔：程式 + 執行引擎 + USB 驅動一次裝好，可一併帶入使用者自己的 xp.iso | ✅ |
+| XP 全自動安裝（只需輸入產品序號；自動辨識家用版/專業版與 SP 版本） | ✅ |
+| 手動安裝 XP、繼續未完成的安裝、匯入現有磁碟映像 | ✅ |
 | 關閉視窗自動休眠、開啟時恢復；或選擇正常關機 | ✅ |
 | iHR320 自動接入 XP（插拔、斷電後自動重新接入），連線失敗時顯示中文原因 | ✅ |
 | 「放入檔案」：把資料夾或檔案做成光碟放進 XP（也可直接拖進視窗） | ✅ |
@@ -38,7 +41,7 @@
 | 一鍵安裝 USB 驅動（UsbDk）；不需開啟 Hyper-V / Hypervisor Platform | ✅ |
 | 資料夾路徑含中文時自動處理 | ✅ |
 | 一鍵產生問題回報（紀錄檔 + 環境資訊 zip） | ✅ |
-| XP 無人值守自動安裝、量測資料自動同步、還原點 | 下一階段 |
+| 量測資料自動同步、還原點 | 下一階段 |
 
 ## 專案結構
 
@@ -47,17 +50,17 @@ src/XPOptical.Core/        核心（不依賴介面）：QEMU 控制、休眠、
 src/XPOptical.App/         Windows 主程式（WPF，繁體中文）
 tests/XPOptical.Core.Tests 單元測試 + 以真實 QEMU 執行的整合測試
 tools/build-engine.py      從 MSYS2 組裝 Windows 版執行引擎（只取實際用到的 DLL）
-tools/package.sh           產生免安裝版資料夾與 zip
+tools/package.sh           產生安裝檔、免安裝版資料夾與 zip
 tools/package.ps1          同上（Windows 版）
 tools/test-windows-engine.sh  用 Wine 對隨附的 Windows 版引擎跑整合測試
 profiles/ihr320.json       iHR320 裝置設定檔
-packaging/                 使用說明與第三方授權說明
+packaging/                 安裝檔腳本（NSIS）、使用說明與第三方授權說明
 docs/                      設計文件、實機驗證步驟、開發環境
 ```
 
 ## 開發
 
-需要 Microsoft 官方 .NET 10 SDK（Ubuntu 套件版的 dotnet 不含 WPF 編譯支援）、python3、zstd；整合測試需要 `qemu-system-x86_64`（或 i386）與 `qemu-img`。
+需要 Microsoft 官方 .NET 10 SDK（Ubuntu 套件版的 dotnet 不含 WPF 編譯支援）、python3、zstd、NSIS 3（安裝檔）；整合測試需要 `qemu-system-x86_64`（或 i386）與 `qemu-img`。
 
 ```bash
 dotnet test tests/XPOptical.Core.Tests    # 單元 + 整合測試

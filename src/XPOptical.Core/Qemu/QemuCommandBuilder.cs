@@ -14,6 +14,8 @@ public sealed record VmLaunchSpec
     /// <summary>光碟機內的映像；null 表示空的光碟機（光碟機一律存在，讓裝置組成固定）。</summary>
     public string? CdromImage { get; init; }
     public bool BootFromCdrom { get; init; }
+    /// <summary>磁碟片 A: 的映像（XP 無人值守安裝時放 WINNT.SIF）；null 表示不接磁碟片。</summary>
+    public string? FloppyImage { get; init; }
 
     /// <summary>
     /// Windows 上只用軟體模擬：QEMU 的 WHPX 不支援休眠（缺少 dirty memory tracking，migrate 直接被擋），
@@ -52,6 +54,10 @@ public static class QemuCommandBuilder
             "-drive", spec.CdromImage is null
                 ? $"if=ide,index=2,media=cdrom,id={CdromDrive}"
                 : $"file={EscapeOption(spec.CdromImage)},if=ide,index=2,media=cdrom,format=raw,id={CdromDrive}",
+        ]);
+        if (spec.FloppyImage is not null)
+            args.AddRange(["-drive", $"file={EscapeOption(spec.FloppyImage)},if=floppy,index=0,format=raw"]);
+        args.AddRange([
             "-boot", spec.BootFromCdrom ? "order=dc,menu=off" : "order=c,menu=off",
             // XP 內建 Cirrus 驅動，免安裝即可 1024x768
             "-vga", "cirrus",
@@ -84,6 +90,7 @@ public static class QemuCommandBuilder
         {
             SystemDisk = FileNameOf(spec.SystemDisk),
             CdromImage = spec.CdromImage is null ? null : FileNameOf(spec.CdromImage),
+            FloppyImage = spec.FloppyImage is null ? null : FileNameOf(spec.FloppyImage),
             FirmwareDir = null,
         };
         var text = string.Join("\n", Build(portable, new VmEndpoints(0, 0)));

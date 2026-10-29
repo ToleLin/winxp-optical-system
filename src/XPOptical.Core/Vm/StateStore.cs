@@ -40,6 +40,8 @@ public sealed class StateStore
     public string SystemDisk => Path.Combine(VmDir, "system.qcow2");
     public string StateFile => Path.Combine(VmDir, "state.bin");
     public string StateTempFile => Path.Combine(VmDir, "state.bin.tmp");
+    /// <summary>XP 無人值守安裝用的磁碟片（含產品序號，安裝完成後刪除）。</summary>
+    public string SetupFloppy => Path.Combine(VmDir, "setup-floppy.img");
     private string StateMetaFile => Path.Combine(VmDir, "state.json");
     private string MetaFile => Path.Combine(VmDir, "vm.json");
 

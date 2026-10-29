@@ -2,6 +2,7 @@ using XPOptical.Core.Diagnostics;
 using XPOptical.Core.Media;
 using XPOptical.Core.Profiles;
 using XPOptical.Core.Qemu;
+using XPOptical.Core.Setup;
 using XPOptical.Core.Usb;
 using XPOptical.Core.Vm;
 
@@ -59,6 +60,12 @@ public sealed class AppController : IAsyncDisposable
     /// <summary>正在從安裝光碟安裝 XP。</summary>
     public bool InstallMode { get; private set; }
 
+    /// <summary>正在全自動安裝 XP（磁碟片上有 WINNT.SIF）。</summary>
+    public bool UnattendedInstall => InstallMode && File.Exists(Store.SetupFloppy);
+
+    /// <summary>程式資料夾中使用者自己放的 XP 安裝光碟（安裝檔會把旁邊的 xp.iso 複製到這裡）。</summary>
+    public string BundledXpIso => Path.Combine(Paths.AppDir, "xp.iso");
+
     public VmState VmState => Vm?.State ?? VmState.Stopped;
     public bool IsRunning => VmState == VmState.Running;
     public bool CanResume => Store.ReadSavedState() is not null;
@@ -93,7 +100,11 @@ public sealed class AppController : IAsyncDisposable
     public async Task StartInstallAsync(string isoPath, bool freshDisk = true, CancellationToken ct = default)
     {
         var vm = RequireVm();
-        if (freshDisk) Store.CreateBlankBaseDisk(Engine!.QemuImg);
+        if (freshDisk)
+        {
+            Store.CreateBlankBaseDisk(Engine!.QemuImg);
+            DeleteSetupFloppy();
+        }
         else if (!HasUnfinishedInstall) throw new InvalidOperationException("找不到先前未完成的安裝");
         isoPath = await EnsureEngineCanReadAsync(isoPath, ct);
         InstallMode = true;
@@ -106,6 +117,8 @@ public sealed class AppController : IAsyncDisposable
                 FirmwareDir = Engine!.FirmwareDir,
                 CdromImage = isoPath,
                 BootFromCdrom = true,
+                // 繼續未完成的全自動安裝時，磁碟片仍需接上（安裝後腳本在磁碟片上）
+                FloppyImage = File.Exists(Store.SetupFloppy) ? Store.SetupFloppy : null,
             }, allowResume: false, ct);
         }
         catch
@@ -114,6 +127,61 @@ public sealed class AppController : IAsyncDisposable
             throw;
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// 全自動安裝 XP：建立新磁碟與含 WINNT.SIF 的磁碟片，從安裝光碟開機。
+    /// 安裝程式會自己分割磁碟、輸入序號、重新開機，完成後第一次登入時自動關機；
+    /// 之後呼叫 <see cref="TryCompleteUnattendedInstall"/> 確認完成。
+    /// </summary>
+    public async Task StartUnattendedInstallAsync(string isoPath, string productKey, CancellationToken ct = default)
+    {
+        if (UnattendedSetup.NormalizeProductKey(productKey) is null)
+            throw new ArgumentException("產品序號格式不正確（應為 25 碼，例如 XXXXX-XXXXX-XXXXX-XXXXX-XXXXX）");
+        var info = XpIsoInfo.Inspect(isoPath);
+        if (!info.IsXp) throw new InvalidOperationException("選擇的檔案不是 Windows XP 安裝光碟。");
+
+        RequireVm();
+        Store.CreateBlankBaseDisk(Engine!.QemuImg);
+        UnattendedSetup.CreateFloppy(Store.SetupFloppy, productKey);
+        _log.Info($"開始全自動安裝：{info.Description}");
+        try
+        {
+            await StartInstallAsync(isoPath, freshDisk: false, ct);
+        }
+        catch
+        {
+            DeleteSetupFloppy();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 執行引擎在安裝模式下結束時呼叫：若是全自動安裝且 XP 已寫入完成標記，
+    /// 標記安裝完成並清除磁碟片（含產品序號）。回傳是否已完成。
+    /// </summary>
+    public bool TryCompleteUnattendedInstall()
+    {
+        if (!InstallMode || VmState != VmState.Stopped) return false;
+        bool done;
+        try { done = UnattendedSetup.IsCompleted(Store.SetupFloppy); }
+        catch (Exception ex) when (ex is IOException or InvalidDataException) { done = false; }
+        if (!done) return false;
+
+        Store.MarkInstalled();
+        InstallMode = false;
+        DeleteSetupFloppy();
+        var isoCopy = Path.Combine(Store.VmDir, "install.iso");
+        if (File.Exists(isoCopy)) File.Delete(isoCopy);
+        _log.Info("全自動安裝完成");
+        Changed?.Invoke();
+        return true;
+    }
+
+    private void DeleteSetupFloppy()
+    {
+        try { if (File.Exists(Store.SetupFloppy)) File.Delete(Store.SetupFloppy); }
+        catch (IOException ex) { _log.Warn($"無法刪除安裝磁碟片：{ex.Message}"); }
     }
 
     /// <summary>
@@ -140,6 +208,7 @@ public sealed class AppController : IAsyncDisposable
         if (IsRunning && !await RequireVm().ShutdownAsync(ShutdownTimeout, ct)) return CloseOutcome.ShutdownTimedOut;
         Store.MarkInstalled();
         InstallMode = false;
+        DeleteSetupFloppy();
         Changed?.Invoke();
         return CloseOutcome.Closed;
     }

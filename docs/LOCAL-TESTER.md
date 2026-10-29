@@ -15,12 +15,14 @@
 ```powershell
 # 需要 GitHub CLI（gh）並已登入可讀取 ToleLin/winxp-optical-system 的帳號
 $dest = "C:\XPOptical-new"
-gh run download -R ToleLin/winxp-optical-system -n XPOptical-win-x64 -D $dest
+gh run download -R ToleLin/winxp-optical-system -n XPOptical-Setup -D $dest        # 單一安裝檔
+gh run download -R ToleLin/winxp-optical-system -n XPOptical-win-x64 -D "$dest\portable"  # 免安裝版（選用）
 ```
 
 `gh run download` 不指定 run 時會讓你選擇；選分支 `claude/adoring-gauss-k2di4m` 最新且成功的那一次。
 
-- **第一次**：把 `$dest` 的內容複製到 `C:\XPOptical`。
+- **安裝檔**：執行 `XPOptical-Setup-<版本>.exe`（可加 `/S` 靜默安裝）。重新安裝新版會覆蓋程式並保留 `vm`、`settings.json`。
+- **免安裝版第一次**：把 `portable` 的內容複製到 `C:\XPOptical`。
 - **更新**：先在程式中按「■ 關機」讓 XP 正常關機並關閉程式，再用新版覆蓋 `XPOptical.exe`、`engine`、`drivers`、`profiles` 與說明檔。**保留** `vm` 資料夾與 `settings.json`（XP 不需重裝）。
 
 ## 2. 要測什麼

@@ -48,6 +48,9 @@ public partial class MainWindow : Window
         RefreshUi();
         // 已建立 XP 環境時，打開程式就直接開啟 XP
         if (_app.Engine is not null && _app.Store.IsInstalled) await StartVmAsync();
+        // 安裝檔帶入了使用者的 xp.iso：直接進入自動安裝（只需輸入序號）
+        else if (_app.Engine is not null && !_app.HasUnfinishedInstall && File.Exists(_app.BundledXpIso))
+            await AutoInstallAsync();
     }
 
     // ───────────── 畫面狀態 ─────────────
@@ -61,6 +64,9 @@ public partial class MainWindow : Window
         MissingEnginePanel.Visibility = Show(_app.Engine is null);
         SetupPanel.Visibility = Show(_app.Engine is not null && stopped && !_app.Store.IsInstalled);
         ContinueInstallButton.Visibility = Show(_app.HasUnfinishedInstall);
+        AutoInstallHint.Text = File.Exists(_app.BundledXpIso)
+            ? "已找到程式資料夾中的 xp.iso，只要輸入產品序號，其餘全部自動完成。"
+            : "選擇 XP 安裝光碟（ISO 檔）並輸入產品序號，其餘全部自動完成。";
         StoppedPanel.Visibility = Show(_app.Engine is not null && stopped && _app.Store.IsInstalled);
         StoppedHint.Text = _app.CanResume ? "將回到上次關閉時的畫面。" : "XP 會重新開機。";
         Display.Visibility = Show(!stopped && Display.IsConnected);
@@ -76,6 +82,7 @@ public partial class MainWindow : Window
 
         VmStatusText.Text = state switch
         {
+            VmState.Running when _app.UnattendedInstall => "XP：自動安裝中（約 30–90 分鐘，完成後自動進入桌面）",
             VmState.Running when _app.InstallMode => "XP：安裝中",
             VmState.Running => "XP：執行中",
             VmState.Starting => "XP：開啟中…",
@@ -245,6 +252,12 @@ public partial class MainWindow : Window
     private async Task OnEngineExitedAsync()
     {
         await Display.DisconnectAsync();
+        if (_app.TryCompleteUnattendedInstall())
+        {
+            Info("XP 安裝完成！\n\n接下來會開啟 XP。請把光學軟體與 iHR320 驅動的安裝檔資料夾拖進視窗，在 XP 裡安裝。");
+            await StartVmAsync();
+            return;
+        }
         if (_app.InstallMode)
         {
             if (Confirm("XP 已關機。\n\nXP 安裝完成了嗎？（已經看到 XP 桌面就是完成了）"))
@@ -261,6 +274,35 @@ public partial class MainWindow : Window
 
     // ───────────── 建立 XP 環境 ─────────────
 
+    private async void OnAutoInstallClick(object sender, RoutedEventArgs e) => await AutoInstallAsync();
+
+    private async Task AutoInstallAsync()
+    {
+        if (_app.HasUnfinishedInstall &&
+            !Confirm("重新安裝會清除先前未完成的安裝。確定要從頭開始嗎？")) return;
+        var dlg = new InstallXpWindow(File.Exists(_app.BundledXpIso) ? _app.BundledXpIso : null) { Owner = this };
+        if (dlg.ShowDialog() != true) return;
+
+        _installIso = dlg.IsoPath;
+        try
+        {
+            await RunBusyAsync("正在準備自動安裝 XP…", async () =>
+            {
+                await _app.StartUnattendedInstallAsync(dlg.IsoPath, dlg.ProductKey);
+                await Display.ConnectAsync(_app.Vm!.VncPort);
+            });
+            Info("XP 開始自動安裝。\n\n" +
+                 "• 約需 30–90 分鐘，期間會重新開機數次，不需要操作。\n" +
+                 "• 出現「Press any key to boot from CD」時不要按任何鍵。\n" +
+                 "• 可以最小化視窗，但請不要關閉程式；完成後會自動進入 XP 桌面。");
+        }
+        catch (Exception ex)
+        {
+            _log.Error("開始自動安裝失敗", ex);
+            Error($"無法開始自動安裝：\n{ex.Message}");
+        }
+    }
+
     private async void OnInstallClick(object sender, RoutedEventArgs e)
     {
         var iso = PickIso();
@@ -272,7 +314,7 @@ public partial class MainWindow : Window
 
     private async void OnContinueInstallClick(object sender, RoutedEventArgs e)
     {
-        var iso = _installIso ?? PickIso();
+        var iso = _installIso ?? (File.Exists(_app.BundledXpIso) ? _app.BundledXpIso : PickIso());
         if (iso is null) return;
         await StartInstallAsync(iso, freshDisk: false);
     }
@@ -339,7 +381,7 @@ public partial class MainWindow : Window
 
         ImportProgress.Value = 0;
         ImportProgress.Visibility = Visibility.Visible;
-        ImportButton.IsEnabled = InstallButton.IsEnabled = false;
+        ImportButton.IsEnabled = InstallButton.IsEnabled = AutoInstallButton.IsEnabled = false;
         try
         {
             await _app.ImportImageAsync(dlg.FileName, new Progress<double>(p => ImportProgress.Value = p));
@@ -354,7 +396,7 @@ public partial class MainWindow : Window
         finally
         {
             ImportProgress.Visibility = Visibility.Collapsed;
-            ImportButton.IsEnabled = InstallButton.IsEnabled = true;
+            ImportButton.IsEnabled = InstallButton.IsEnabled = AutoInstallButton.IsEnabled = true;
             RefreshUi();
         }
     }

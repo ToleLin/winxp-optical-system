@@ -17,16 +17,24 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: 安裝 QEMU（整合測試）與 zstd（解開 MSYS2 套件）
+      - name: 安裝 QEMU（整合測試）、zstd（解開 MSYS2 套件）與 NSIS（安裝檔）
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils zstd
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils zstd nsis
 
       - name: 測試
         run: dotnet test tests/XPOptical.Core.Tests -c Release
 
       - name: 打包免安裝版
         run: ./tools/package.sh
+
+      - name: 上傳安裝檔
+        uses: actions/upload-artifact@v7
+        with:
+          name: XPOptical-Setup
+          path: dist/XPOptical-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 30
 
       - name: 上傳免安裝版
         uses: actions/upload-artifact@v7
