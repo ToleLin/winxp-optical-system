@@ -8,11 +8,11 @@
 - **像關機一樣保存**：關閉時快速休眠，下次數秒內回到原畫面
 - **安全隔離**：XP 不連網；檔案以唯讀光碟放進 XP
 
-> 目前版本：**v0.2.1**。程式已在雲端與 Win11 實機完成自動化與介面測試；尚待真正的 XP + iHR320 驗證（見 [docs/PHASE0-POC.md](docs/PHASE0-POC.md)）。
+> 目前版本：**v0.2.2**。程式已在雲端與 Win11 實機完成自動化與介面測試；尚待真正的 XP + iHR320 驗證（見 [docs/PHASE0-POC.md](docs/PHASE0-POC.md)）。
 
 ## 極簡安裝（3 步）
 
-下載：**[Releases 最新版](https://github.com/ToleLin/winxp-optical-system/releases/latest)** 的 `XPOptical-Setup-<版本>.exe`
+下載：打開 **[Releases 最新版](https://github.com/ToleLin/winxp-optical-system/releases/latest)**，按頁面最上方的「⬇ 按這裡下載安裝檔」（`XPOptical-Setup-<版本>.exe`）
 
 1. 把自己的 Windows XP 安裝光碟 ISO 檔改名為 `xp.iso`，和安裝檔放在同一個資料夾。
 2. 執行安裝檔，一路按「下一步」（USB 驅動會一併安裝）。若出現「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」。
@@ -35,7 +35,7 @@
 
 > 截圖來自雲端測試環境（Wine，字型為 Noto Sans CJK）；在 Windows 上會使用微軟正黑體。
 
-## 功能（v0.2.1）
+## 功能（v0.2.2）
 
 | 功能 | 狀態 |
 |---|---|

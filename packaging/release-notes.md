@@ -1,9 +1,13 @@
 在 Windows 10/11 上執行只能在 Windows XP 運作的光學軟體，並把 HORIBA iHR320 分光儀（USB）接進 XP。
 
+## ⬇ [按這裡下載安裝檔（XPOptical-Setup-{VERSION}.exe，約 90 MB）](https://github.com/ToleLin/winxp-optical-system/releases/download/{TAG}/XPOptical-Setup-{VERSION}.exe)
+
+所有檔案也列在本頁最下方的「Assets」，點檔名即可下載。
+
 ## 極簡安裝（3 步）
 
-1. 下載下方的 **XPOptical-Setup-{VERSION}.exe**。把自己的 Windows XP 安裝光碟 ISO 檔改名為 `xp.iso`，和安裝檔放在同一個資料夾。
-2. 執行安裝檔，一路按「下一步」。（若出現「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」）
+1. 下載上面的安裝檔。把自己的 Windows XP 安裝光碟 ISO 檔改名為 `xp.iso`，和安裝檔放在同一個資料夾（例如「下載」）。
+2. 雙擊安裝檔，一路按「下一步」。（若出現「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」；問「要允許此應用程式變更您的裝置嗎？」按「是」）
 3. 程式自動開啟後輸入 XP 產品序號，按「開始自動安裝」。約 30–90 分鐘後自動進入 XP 桌面。
 
 之後：把光學軟體的安裝檔資料夾拖進視窗，在 XP 裡安裝；按「設定」選擇 iHR320。關閉時直接按 ✕，下次開啟回到原本的畫面。
@@ -12,14 +16,16 @@
 
 詳細說明見安裝後的「使用說明」（開始功能表 → XP 光學系統 → 使用說明）。
 
-## 下載檔案
+## 檔案說明
 
-| 檔案 | 說明 |
+| 檔案（點檔名下載） | 說明 |
 |---|---|
-| **XPOptical-Setup-{VERSION}.exe** | 安裝檔（建議）：程式、執行引擎、USB 驅動一次裝好 |
-| XPOptical-{VERSION}-win-x64.zip | 免安裝版：解壓縮到 `C:\XPOptical` 後執行 XPOptical.exe |
-| XPOptical-{VERSION}-engine-sources.tar | 隨附執行引擎（QEMU 等）各元件的原始碼，依 GPL/LGPL 提供；一般使用者不需要下載 |
-| SHA256SUMS.txt | 以上檔案的 SHA-256 檢查碼 |
+| **[XPOptical-Setup-{VERSION}.exe](https://github.com/ToleLin/winxp-optical-system/releases/download/{TAG}/XPOptical-Setup-{VERSION}.exe)** | 安裝檔（建議）：程式、執行引擎、USB 驅動一次裝好 |
+| [XPOptical-{VERSION}-win-x64.zip](https://github.com/ToleLin/winxp-optical-system/releases/download/{TAG}/XPOptical-{VERSION}-win-x64.zip) | 免安裝版：解壓縮到 `C:\XPOptical` 後執行 XPOptical.exe |
+| [XPOptical-{VERSION}-engine-sources.tar](https://github.com/ToleLin/winxp-optical-system/releases/download/{TAG}/XPOptical-{VERSION}-engine-sources.tar) | 隨附執行引擎（QEMU 等）各元件的原始碼，依 GPL/LGPL 提供；一般使用者不需要下載 |
+| [SHA256SUMS.txt](https://github.com/ToleLin/winxp-optical-system/releases/download/{TAG}/SHA256SUMS.txt) | 以上檔案的 SHA-256 檢查碼 |
+
+最下方「Assets」裡的「Source code」是程式原始碼，給開發者用，一般使用者不需要下載。
 
 ## 目前狀態
 

@@ -1,4 +1,4 @@
-# WinXP Optical System — 系統設計（v0.3，對應程式 v0.2.1）
+# WinXP Optical System — 系統設計（v0.3，對應程式 v0.2.2）
 
 > 目標：一個在 Windows 10/11 上雙擊即可使用的程式，讓只能在 Windows XP 上操作的光學軟體與 **HORIBA iHR320 分光儀**繼續運作。
 > 重點強化 **USB 連接**，關閉後像關機一樣保存狀態，但不帶傳統虛擬機的笨重。
