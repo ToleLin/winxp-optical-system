@@ -249,7 +249,9 @@ public sealed class IntegrationTests : IDisposable
 
         await app.StartInstallAsync(iso);
         Assert.True(app.InstallMode);
-        Assert.Equal(iso, app.Vm!.CurrentSpec!.CdromImage);
+        // 光碟路徑含中文，引擎讀不到 -> 自動複製到 vm 資料夾
+        Assert.Equal(Path.Combine(app.Store.VmDir, "install.iso"), app.Vm!.CurrentSpec!.CdromImage);
+        Assert.Equal(new FileInfo(iso).Length, new FileInfo(app.Vm.CurrentSpec.CdromImage!).Length);
         Assert.False(app.Store.IsInstalled);
 
         // 安裝中關閉視窗：無法休眠，直接關閉

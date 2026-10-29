@@ -12,7 +12,8 @@ public sealed class QemuProcess : IDisposable
 
     private QemuProcess(Process process) => _process = process;
 
-    public static QemuProcess Start(string exe, IEnumerable<string> args, ILog log)
+    /// <param name="workingDirectory">QEMU 收到的相對路徑以此為基準（見 <see cref="SafePath"/>）。</param>
+    public static QemuProcess Start(string exe, IEnumerable<string> args, string workingDirectory, ILog log)
     {
         var psi = new ProcessStartInfo(exe)
         {
@@ -20,7 +21,7 @@ public sealed class QemuProcess : IDisposable
             CreateNoWindow = true,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
-            WorkingDirectory = Path.GetDirectoryName(exe) ?? Environment.CurrentDirectory,
+            WorkingDirectory = workingDirectory,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
 

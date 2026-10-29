@@ -10,6 +10,10 @@ public enum VmState { Stopped, Starting, Running, Saving, ShuttingDown }
 
 public sealed record VmStartResult(bool Resumed, bool SoftwareEmulation, string? ResumeFailure);
 
+/// <summary>XP 已停止且磁碟已保存，但記憶體狀態沒有完整存下來；下次開啟會冷開機。</summary>
+public sealed class HibernateIncompleteException(Exception inner)
+    : Exception("XP 的畫面狀態沒有完整保存，下次開啟會重新開機 XP（磁碟裡的資料已保存）。", inner);
+
 /// <summary>XP 執行環境的生命週期：冷開機、從休眠檔恢復、休眠存檔、正常關機。</summary>
 public sealed class VmController : IAsyncDisposable
 {
@@ -94,17 +98,23 @@ public sealed class VmController : IAsyncDisposable
             throw new InvalidOperationException("光碟機中有光碟時無法休眠");
 
         SetState(VmState.Saving);
+        using var receiveCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        StateReceiver? receiver = null;
+        var started = DateTime.UtcNow;
         try
         {
             await qmp.ExecuteAsync("stop", ct: ct);
             if (File.Exists(_store.StateTempFile)) File.Delete(_store.StateTempFile);
-            await qmp.ExecuteAsync("migrate", new { channels = FileChannel(_store.StateTempFile) }, ct);
+            receiver = StateStream.ReceiveToFile(_store.StateTempFile, receiveCts.Token);
+            await qmp.ExecuteAsync("migrate", new { channels = StateStream.SocketChannel(receiver.Port) }, ct);
             await WaitForMigrationAsync(qmp, ct);
-            _store.CommitSavedState(QemuCommandBuilder.ComputeSignature(_spec), _engine.Version);
-            _log.Info("休眠存檔完成");
+            // 確定 QEMU 送出的資料都已讀完，再結束引擎（結束時連線可能被重設）
+            await receiver.WaitForIdleAsync(TimeSpan.FromMilliseconds(300), MigrationTimeout, ct);
         }
         catch (Exception ex)
         {
+            receiveCts.Cancel();
+            if (receiver is not null) await receiver.Completion.ContinueWith(_ => { }, TaskScheduler.Default);
             _log.Error("休眠存檔失敗，XP 繼續執行", ex);
             try
             {
@@ -118,7 +128,21 @@ public sealed class VmController : IAsyncDisposable
             throw;
         }
 
+        // 遷移已完成、磁碟已寫入。Windows 版 QEMU 不會主動關閉連線，結束引擎讓資料流結束
         await QuitAndWaitAsync();
+        try
+        {
+            var bytes = await receiver.Completion.WaitAsync(TimeSpan.FromSeconds(30), ct);
+            if (bytes == 0) throw new InvalidOperationException("休眠檔是空的");
+            _store.CommitSavedState(QemuCommandBuilder.ComputeSignature(_spec), _engine.Version);
+            _log.Info($"休眠存檔完成：{bytes / 1048576.0:F1} MB，{(DateTime.UtcNow - started).TotalSeconds:F1} 秒");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _store.InvalidateSavedState();
+            _log.Error("休眠檔寫入不完整", ex);
+            throw new HibernateIncompleteException(ex);
+        }
     }
 
     /// <summary>要求 XP 正常關機（等同按下電源鍵）。逾時回傳 false，由呼叫端決定是否強制關閉。</summary>
@@ -152,7 +176,8 @@ public sealed class VmController : IAsyncDisposable
         var qmpPort = PortAllocator.GetFreePort();
         var vncPort = PortAllocator.GetFreePort(QemuCommandBuilder.VncBasePort, QemuCommandBuilder.VncBasePort + 99);
         var process = QemuProcess.Start(_engine.QemuSystem,
-            QemuCommandBuilder.Build(spec, new VmEndpoints(qmpPort, vncPort, incoming)), _log);
+            QemuCommandBuilder.Build(ToSafePaths(spec), new VmEndpoints(qmpPort, vncPort, incoming)),
+            _store.VmDir, _log);
         lock (_gate)
         {
             _process = process;
@@ -175,13 +200,17 @@ public sealed class VmController : IAsyncDisposable
     private async Task ResumeFromStateAsync(CancellationToken ct)
     {
         var qmp = _qmp!;
-        await qmp.ExecuteAsync("migrate-incoming", new { channels = FileChannel(_store.StateFile) }, ct);
+        var started = DateTime.UtcNow;
+        var port = PortAllocator.GetFreePort();
+        await qmp.ExecuteAsync("migrate-incoming", new { channels = StateStream.SocketChannel(port) }, ct);
+        var send = StateStream.SendFileAsync(port, _store.StateFile, QmpConnectTimeout, ct);
 
         // 存檔前已先暫停，所以讀取完成後會停在 paused，不會自行開始執行
         var deadline = DateTime.UtcNow + MigrationTimeout;
         while (true)
         {
             if (_process!.HasExited) throw new InvalidOperationException("執行引擎在讀取休眠檔時結束");
+            if (send.IsFaulted) await send;
             var status = (await qmp.ExecuteAsync("query-status", ct: ct)).GetProperty("status").GetString();
             if (status == "paused") break;
             var mig = await qmp.ExecuteAsync("query-migrate", ct: ct);
@@ -191,10 +220,12 @@ public sealed class VmController : IAsyncDisposable
             await Task.Delay(50, ct);
         }
 
+        await send.WaitAsync(TimeSpan.FromSeconds(30), ct);
+
         // XP 即將繼續執行：先作廢休眠檔，再讓它跑
         _store.BeginRun();
         await qmp.ExecuteAsync("cont", ct: ct);
-        _log.Info("已從休眠檔恢復");
+        _log.Info($"已從休眠檔恢復：{(DateTime.UtcNow - started).TotalSeconds:F1} 秒");
     }
 
     private static async Task WaitForMigrationAsync(QmpClient qmp, CancellationToken ct)
@@ -215,19 +246,12 @@ public sealed class VmController : IAsyncDisposable
         }
     }
 
-    private static object[] FileChannel(string path) =>
-    [
-        new Dictionary<string, object>
-        {
-            ["channel-type"] = "main",
-            ["addr"] = new Dictionary<string, object>
-            {
-                ["transport"] = "file",
-                ["filename"] = path,
-                ["offset"] = 0,
-            },
-        },
-    ];
+    private VmLaunchSpec ToSafePaths(VmLaunchSpec spec) => spec with
+    {
+        SystemDisk = SafePath.MakeSafe(spec.SystemDisk, _store.VmDir),
+        CdromImage = spec.CdromImage is null ? null : SafePath.MakeSafe(spec.CdromImage, _store.VmDir),
+        FirmwareDir = spec.FirmwareDir is null ? null : SafePath.MakeSafe(spec.FirmwareDir, _store.VmDir),
+    };
 
     private async Task QuitAndWaitAsync()
     {

@@ -129,6 +129,36 @@ public sealed class StateStore
     {
         var tmp = BaseDisk + ".importing";
         if (File.Exists(tmp)) File.Delete(tmp);
+        // 來源在中文路徑時，先在 vm 資料夾建立英文檔名的連結（同一磁碟機不佔空間），不行才複製
+        var full = Path.GetFullPath(source);
+        var safeSource = Qemu.SafePath.TryMakeSafe(full, VmDir);
+        string? staged = null;
+        if (safeSource is null)
+        {
+            staged = Path.Combine(VmDir, "import-source" + Path.GetExtension(full));
+            if (File.Exists(staged)) File.Delete(staged);
+            if (!TryCreateHardLink(staged, full)) File.Copy(full, staged);
+            safeSource = Path.GetFileName(staged);
+        }
+        try
+        {
+            await ConvertAsync(qemuImg, safeSource, tmp, progress, ct);
+        }
+        finally
+        {
+            if (staged is not null && File.Exists(staged)) File.Delete(staged);
+        }
+
+        InvalidateSavedState();
+        if (File.Exists(SystemDisk)) File.Delete(SystemDisk);
+        File.Move(tmp, BaseDisk, overwrite: true);
+        progress?.Report(100);
+        MarkInstalled();
+    }
+
+    private async Task ConvertAsync(string qemuImg, string source, string tmp, IProgress<double>? progress,
+        CancellationToken ct)
+    {
         var psi = NewQemuImgStartInfo(qemuImg, "convert", "-p", "-O", "qcow2", source, Path.GetFileName(tmp));
         using var p = Process.Start(psi) ?? throw new InvalidOperationException("無法啟動 qemu-img");
         var stderrTask = p.StandardError.ReadToEndAsync(ct);
@@ -156,13 +186,14 @@ public sealed class StateStore
             if (File.Exists(tmp)) File.Delete(tmp);
             throw new InvalidOperationException($"磁碟映像轉換失敗：{stderr.Trim()}");
         }
-
-        InvalidateSavedState();
-        if (File.Exists(SystemDisk)) File.Delete(SystemDisk);
-        File.Move(tmp, BaseDisk, overwrite: true);
-        progress?.Report(100);
-        MarkInstalled();
     }
+
+    private static bool TryCreateHardLink(string link, string target) =>
+        OperatingSystem.IsWindows() && CreateHardLinkW(link, target, IntPtr.Zero);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode,
+        SetLastError = true)]
+    private static extern bool CreateHardLinkW(string fileName, string existingFileName, IntPtr securityAttributes);
 
     private void RunQemuImg(string qemuImg, params string[] args)
     {

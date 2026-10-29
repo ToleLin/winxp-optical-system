@@ -61,6 +61,8 @@ public sealed class AppController : IAsyncDisposable
     public VmState VmState => Vm?.State ?? VmState.Stopped;
     public bool IsRunning => VmState == VmState.Running;
     public bool CanResume => Store.ReadSavedState() is not null;
+    /// <summary>有磁碟但尚未標記安裝完成（例如安裝到一半關閉了程式）。</summary>
+    public bool HasUnfinishedInstall => !Store.IsInstalled && File.Exists(Store.BaseDisk);
 
     /// <summary>任何狀態改變（在背景執行緒觸發）。</summary>
     public event Action? Changed;
@@ -83,11 +85,16 @@ public sealed class AppController : IAsyncDisposable
         return result;
     }
 
-    /// <summary>從 XP 安裝光碟開始安裝。會清除既有的 XP 環境。</summary>
-    public async Task StartInstallAsync(string isoPath, CancellationToken ct = default)
+    /// <summary>
+    /// 從 XP 安裝光碟開機安裝。<paramref name="freshDisk"/> 為 true 時建立新磁碟（清除既有的 XP 環境），
+    /// false 時沿用先前未完成的安裝。
+    /// </summary>
+    public async Task StartInstallAsync(string isoPath, bool freshDisk = true, CancellationToken ct = default)
     {
         var vm = RequireVm();
-        Store.CreateBlankBaseDisk(Engine!.QemuImg);
+        if (freshDisk) Store.CreateBlankBaseDisk(Engine!.QemuImg);
+        else if (!HasUnfinishedInstall) throw new InvalidOperationException("找不到先前未完成的安裝");
+        isoPath = await EnsureEngineCanReadAsync(isoPath, ct);
         InstallMode = true;
         try
         {
@@ -95,7 +102,7 @@ public sealed class AppController : IAsyncDisposable
             {
                 SystemDisk = Store.BaseDisk,
                 RamMB = Settings.EffectiveRamMB(Profile),
-                FirmwareDir = Engine.FirmwareDir,
+                FirmwareDir = Engine!.FirmwareDir,
                 CdromImage = isoPath,
                 BootFromCdrom = true,
             }, allowResume: false, ct);
@@ -106,6 +113,24 @@ public sealed class AppController : IAsyncDisposable
             throw;
         }
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// 安裝光碟放在含中文的路徑（例如「下載」資料夾在中文帳號下）時，執行引擎讀不到；
+    /// 這種情況把它複製到 vm 資料夾。
+    /// </summary>
+    private async Task<string> EnsureEngineCanReadAsync(string isoPath, CancellationToken ct)
+    {
+        if (SafePath.TryMakeSafe(Path.GetFullPath(isoPath), Store.VmDir) is not null) return isoPath;
+        var copy = Path.Combine(Store.VmDir, "install.iso");
+        if (!string.Equals(Path.GetFullPath(isoPath), copy, StringComparison.OrdinalIgnoreCase))
+        {
+            _log.Info($"安裝光碟路徑含中文，複製到 {copy}");
+            await using var src = File.OpenRead(isoPath);
+            await using var dst = File.Create(copy);
+            await src.CopyToAsync(dst, ct);
+        }
+        return copy;
     }
 
     /// <summary>使用者確認 XP 已安裝完成。若 XP 還在執行，先要求關機。</summary>
@@ -146,7 +171,7 @@ public sealed class AppController : IAsyncDisposable
                 await Vm.HibernateAsync(ct);
                 return CloseOutcome.Closed;
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (ex is not OperationCanceledException and not HibernateIncompleteException)
             {
                 // XP 會繼續執行；恢復 USB 自動接入，再把錯誤交給介面
                 ResumeUsb();

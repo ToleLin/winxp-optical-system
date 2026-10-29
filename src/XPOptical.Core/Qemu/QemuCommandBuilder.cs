@@ -58,6 +58,8 @@ public static class QemuCommandBuilder
             "-device", $"usb-tablet,bus={UsbBus}",
             // XP 未修補，預設不連網
             "-nic", "none",
+            // 光學軟體不需要音效；不初始化音效裝置
+            "-audio", "none",
             "-display", "none",
             "-vnc", $"127.0.0.1:{(ep.VncPort == 0 ? 0 : ep.VncPort - VncBasePort)}",
             "-qmp", $"tcp:127.0.0.1:{ep.QmpPort},server=on,wait=off",
