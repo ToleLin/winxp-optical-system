@@ -3,7 +3,13 @@ name: 建置與測試
 on:
   push:
   pull_request:
+  # 在 Actions 頁面按「Run workflow」；填入版本標籤就會在建置、測試後發佈 Release
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 要發佈的版本標籤（例如 v0.2.1，須和 Directory.Build.props 的版本一致；只能從 main 發佈）。留空只建置與測試
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -46,8 +52,8 @@ jobs:
           path: dist/XPOptical/
           retention-days: 30
 
-      - name: 上傳發佈用檔案（版本標籤）
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: 上傳發佈用檔案（發佈版本時）
+        if: startsWith(github.ref, 'refs/tags/v') || (inputs.release_tag != '' && github.ref == 'refs/heads/main')
         uses: actions/upload-artifact@v7
         with:
           name: release
@@ -58,10 +64,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # 推送版本標籤（例如 v0.2.1）時，把安裝檔發佈到 GitHub Releases。
+  # 推送版本標籤（例如 v0.2.1），或在 main 上按「Run workflow」並填入版本標籤時，把安裝檔發佈到 GitHub Releases。
   # 只有這個工作有寫入權限；建置與測試在上面唯讀的工作完成。
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (inputs.release_tag != '' && github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -79,4 +85,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: ./tools/publish-release.sh "$GITHUB_REF_NAME" release
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.release_tag }}
+        run: ./tools/publish-release.sh "$RELEASE_TAG" release

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 把 CI 建出的安裝檔發佈到 GitHub Releases（推送版本標籤時由 .github/workflows/build.yml 呼叫）：
+# 把 CI 建出的安裝檔發佈到 GitHub Releases（由 .github/workflows/build.yml 呼叫）：
 #   XPOptical-Setup-<版本>.exe            安裝檔
 #   XPOptical-<版本>-win-x64.zip           免安裝版
 #   XPOptical-<版本>-engine-sources.tar    執行引擎各元件的原始碼（GPL/LGPL 要求）
@@ -7,6 +7,7 @@
 # 用法：publish-release.sh <標籤> <檔案資料夾>
 #   標籤必須是 v<Directory.Build.props 的版本>，例如 v0.2.1；
 #   加上後綴（例如 v0.3.0-beta.1）會發佈為預先發行版，不會成為 releases/latest。
+#   標籤還不存在時，建立在目前的提交（HEAD）上；已存在時必須指向 HEAD。
 # 需要：gh（GH_TOKEN 要有 contents: write 權限）、python3
 set -euo pipefail
 TAG=$1
@@ -27,6 +28,13 @@ for f in "$SETUP" "$ZIP"; do
   [ -f "$DIR/$f" ] || { echo "找不到 $DIR/$f" >&2; exit 1; }
 done
 
+# 附註標籤取 ^{} 才是它指向的提交
+TARGET=$(git -C "$ROOT" rev-parse HEAD)
+TAGGED=$(git -C "$ROOT" ls-remote origin "refs/tags/$TAG" "refs/tags/$TAG^{}" | sort -k2 | tail -1 | cut -f1)
+if [ -n "$TAGGED" ] && [ "$TAGGED" != "$TARGET" ]; then
+  echo "標籤 $TAG 已指向 $TAGGED，不是這次建置的 $TARGET" >&2; exit 1
+fi
+
 python3 "$ROOT/tools/fetch-engine-sources.py" "$DIR/XPOptical/engine/engine-manifest.json" "$DIR/$SOURCES"
 (cd "$DIR" && sha256sum "$SETUP" "$ZIP" "$SOURCES" > SHA256SUMS.txt)
 FILES=("$DIR/$SETUP" "$DIR/$ZIP" "$DIR/$SOURCES" "$DIR/SHA256SUMS.txt")
@@ -38,7 +46,7 @@ if gh release view "$TAG" >/dev/null 2>&1; then
   # 重新執行時只更新檔案，保留已發佈的說明
   gh release upload "$TAG" "${FILES[@]}" --clobber
 else
-  gh release create "$TAG" "${FILES[@]}" --verify-tag --title "XP 光學系統 $VERSION" \
+  gh release create "$TAG" "${FILES[@]}" --target "$TARGET" --title "XP 光學系統 $VERSION" \
     --notes-file "$NOTES" --generate-notes "${PRERELEASE[@]}"
 fi
 echo "已發佈：$TAG"

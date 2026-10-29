@@ -85,7 +85,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1   # 在 Windows 上�
 ### 發佈新版
 
 1. 修改 `Directory.Build.props` 的 `<Version>`，合併到 `main`。
-2. 在 `main` 上建立並推送版本標籤，例如 `git tag v0.2.2 && git push origin v0.2.2`。
+2. 到 GitHub 的 Actions →「建置與測試」→「Run workflow」（分支選 `main`），在版本標籤欄填 `v0.2.2` 後執行；
+   或在 `main` 上推送版本標籤：`git tag v0.2.2 && git push origin v0.2.2`。
 3. CI 建置、測試後自動發佈到 [Releases](https://github.com/ToleLin/winxp-optical-system/releases)：安裝檔、免安裝版、執行引擎原始碼與檢查碼；說明文字取自 `packaging/release-notes.md`。
    標籤加後綴（例如 `v0.3.0-beta.1`）會發佈為預先發行版，不會成為「最新版」。
 
